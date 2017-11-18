@@ -363,7 +363,7 @@ def main():
 		if mouseClick != None:
 			loc =  mouseClick[0]/500.0, mouseClick[1]/500.0
 			loc =  rrt_loc((mouseClick[0],mouseClick[1]))
-			print (round(loc[0][0] * 1000 ,3), round(loc[0][1] * 1000,3)), ","
+			print [round(loc[0][0] ,3), round(loc[0][1] ,3)], ","
 			#pygame.draw.circle(screen, (255,255,0), mouseClick, 7)
 			pygame.draw.circle(screen, (0,0,255), mouseClick, 2)
 			label = myfont.render(str(loc), 3, (0,0,0))
