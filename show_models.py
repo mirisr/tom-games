@@ -8,7 +8,7 @@ from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import cPickle
 from team_runner import TeamRunner
-from inference_alg import importance_sampling
+from inference_alg import importance_sampling, metroplis_hastings
 from program_trace import ProgramTrace
 from planner import * 
 from tqdm import tqdm
@@ -96,6 +96,7 @@ def plot_runner(poly_map, trace, locs=None):
 
 
 
+
 	close_plot(fig, ax)
 
 
@@ -112,6 +113,8 @@ def simulate_running_goal_inference(runner_model, poly_map, locs):
 	for i in range( 0, len(path)-1):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'lightgrey', linestyle="-", linewidth=1)
+
+	close_plot(fig, ax, "true_path.eps")
 		
 
 	#for t in xrange(15):
@@ -128,21 +131,80 @@ def simulate_running_goal_inference(runner_model, poly_map, locs):
 		ax.scatter( path[prev_t][0],  path[prev_t][1] , s = 70, facecolors='none', edgecolors='b')
 	ax.scatter( path[t][0],  path[t][1] , s = 80, facecolors='none', edgecolors='r')
 
-	post_sample_traces = run_inference(Q, post_samples=1, samples=1)
+	post_sample_traces = run_inference(Q, post_samples=32, samples=64)
 
 	# show post sample traces on map
 	for trace in post_sample_traces:
-		print trace["t"]
+
+		path = trace["runner_plan"]
+		for i in range( 0, len(path)-1):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'red', linestyle="--", linewidth=1, alpha = 0.2)
+
+	close_plot(fig, ax, "infered_goal.eps")
 
 
 
-	close_plot(fig, ax)
+def goal_inference_while_moving(runner_model, poly_map, locs):
+	x1,y1,x2,y2 = poly_map
+	# plan for the runner
+	start = 4
+	goal = 0
+	path = run_rrt_opt( np.atleast_2d(locs[start]), 
+		np.atleast_2d(locs[goal]), x1,y1,x2,y2 )
+
+	fig, ax = setup_plot(poly_map, locs)
+
+	for i in range( 0, len(path)-1):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'lightgrey', linestyle="-", linewidth=1)
+
+	close_plot(fig, ax, "true_path.eps")
+
+	#inferrred_goals = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0 }
+	inferrred_goals = []
+	for t in xrange(5, 10):
+		Q = ProgramTrace(runner_model)
+
+		Q.condition("run_start", 4)
+		Q.condition("t", t) 
+		# condition on previous time steps
+		for prev_t in xrange(t):
+			Q.condition("run_x_"+str(prev_t), path[prev_t][0])
+			Q.condition("run_y_"+str(prev_t), path[prev_t][1])
+			ax.scatter( path[prev_t][0],  path[prev_t][1] , s = 70, facecolors='none', edgecolors='b')
+		ax.scatter( path[t][0],  path[t][1] , s = 80, facecolors='none', edgecolors='r')
+
+		post_sample_traces = run_inference(Q, post_samples=5, samples=1)
+
+		goal_list = []
+		# show post sample traces on map
+		for trace in post_sample_traces:
+			inferred_goal = trace["run_goal"]
+			goal_list.append(inferred_goal)
+			print goal_list
+			path = trace["runner_plan"]
+			for i in range( 0, len(path)-1):
+				ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+					'red', linestyle="--", linewidth=1, alpha = 0.2)
+
+		inferrred_goals.append(goal_list)
+		close_plot(fig, ax, "time/post-samples-t-"+str(t)+".eps")
 
 
-def run_inference(trace, post_samples=1, samples=1):
+def plot_inferred_goals_over_time(inferrred_goals):
+
+	#total_time_steps = len(inferrred_goals)
+	#plt.plot(range(total_time_steps), )
+	plt.ylabel('probability of goal')
+	plt.xlabel('time step')
+	plt.savefig('inferred_goals_over_time.eps')
+
+def run_inference(trace, post_samples=8, samples=32):
 	post_traces = []
 	for i in  tqdm(xrange(post_samples)):
-		post_sample_trace = importance_sampling(trace, samples)
+		#post_sample_trace = importance_sampling(trace, samples)
+		post_sample_trace = metroplis_hastings(trace, samples)
 		post_traces.append(post_sample_trace)
 	return post_traces
 
@@ -166,8 +228,8 @@ if __name__ == '__main__':
 	runner_model = TeamRunner(seg_map=poly_map, locs=locs, isovist=isovist)
 	Q = ProgramTrace(runner_model)
 
-	simulate_running_goal_inference(runner_model, poly_map, locs)
-
+	#simulate_running_goal_inference(runner_model, poly_map, locs)
+	goal_inference_while_moving(runner_model, poly_map, locs)
 
 	# Q.condition("run_start", 0)
 	# Q.condition("partner_run_start", 4)

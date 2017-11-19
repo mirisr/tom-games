@@ -51,6 +51,8 @@ class TeamRunner(object):
 			loc_t = [loc_x, loc_y]
 			my_noisy_plan.append(loc_t)
 		my_noisy_plan.append(my_plan[-1])
+
+		Q.keep("runner_plan", my_noisy_plan)
 		
 
 	def run_collaborative(self,Q, path_noise=0.003):
