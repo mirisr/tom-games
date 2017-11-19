@@ -27,11 +27,31 @@ class TeamRunner(object):
 
 	# run the model inside this function
 	def run(self, Q):
-		self.run_collaborative(Q)
+		self.run_basic(Q)
 
-	def run_basic(self, Q):
-		# need to simulate which place Alice would go
-		popular_loc = Q.flip(0.6)
+	def run_basic(self, Q, path_noise=0.003):
+		rx1,ry1,rx2,ry2 = self.seg_map
+		t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
+
+		start_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="run_start" )
+		goal_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="run_goal" )
+		start = np.atleast_2d( self.locs[start_i] )
+		goal = np.atleast_2d( self.locs[goal_i] )
+
+		# plan using the latent variables of start and goal
+		my_plan = planner.run_rrt_opt( np.atleast_2d(start), 
+		np.atleast_2d(goal), rx1,ry1,rx2,ry2 )
+		my_loc = np.atleast_2d(my_plan[t])
+
+		# add noise to the plan
+		my_noisy_plan = [my_plan[0]]
+		for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
+			loc_x = Q.randn( mu=my_plan[i][0], sigma=path_noise, name="run_x_"+str(i) )
+			loc_y = Q.randn( mu=my_plan[i][1], sigma=path_noise, name="run_y_"+str(i) )
+			loc_t = [loc_x, loc_y]
+			my_noisy_plan.append(loc_t)
+		my_noisy_plan.append(my_plan[-1])
+		
 
 	def run_collaborative(self,Q, path_noise=0.003):
 		rx1,ry1,rx2,ry2 = self.seg_map
@@ -55,7 +75,6 @@ class TeamRunner(object):
 			loc_t = [loc_x, loc_y]
 			my_noisy_plan.append(loc_t)
 		my_noisy_plan.append(my_plan[-1])
-		my_loc = np.atleast_2d(my_plan[t])
 
 		# current location of runner (at time 't')
 		#curr_loc = [Q.get_obs("run_x_"+str(t)), Q.get_obs("run_y_"+str(t))]
@@ -69,7 +88,7 @@ class TeamRunner(object):
 		# write a mini model of the opposing chaser
 
 
-	def partner_model(self, Q, collaborators_noisy_plan, path_noise=0.003):
+	def partner_model(self, Q, collaborators_noisy_plan, path_noirse=0.003):
 		rx1,ry1,rx2,ry2 = self.seg_map
 		# the same time
 		t = Q.fetch("t")

@@ -1,6 +1,9 @@
 import program_trace as program_trace
 from random import randint
 import random
+import numpy as np
+import copy
+from scipy.misc import logsumexp
 
 # importance sampling using the score of trace
 def importance_sampling(Q, particles):
