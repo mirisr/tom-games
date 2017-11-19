@@ -33,14 +33,11 @@ def metroplis_hastings(Q, particles):
 
 		# sample from proposal distribution
 		proposed_score, proposed_trace = Q.run_model()
-		# keep
-		traces.append(copy.deepcopy(trace_vals))
-		scores[i] = score
 
 		# accept new sample
-		if log(random.uniform(0,1)) < proposed_score - current_score:
-			current_trace = proposed_trace
-			current_score = current_score
+		if np.log(random.uniform(0,1)) < proposed_score - current_score:
+			current_trace = copy.deepcopy(proposed_trace)
+			current_score = proposed_score
 
 	return current_trace
 
