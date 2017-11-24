@@ -12,7 +12,7 @@ from inference_alg import importance_sampling, metroplis_hastings
 from program_trace import ProgramTrace
 from planner import * 
 from tqdm import tqdm
-
+#import seaborn
 
 def plot(poly_map, plot_name=None, locs=None):
 	fig = plt.figure(1)
@@ -114,6 +114,9 @@ def simulate_running_goal_inference(runner_model, poly_map, locs):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'lightgrey', linestyle="-", linewidth=1)
 
+	# ax.scatter( path[0][0],  path[0][1] , s = 120, facecolors='none', edgecolors='g')
+	# ax.scatter( path[-1][0],  path[-1][1] , s = 120, facecolors='none', edgecolors='r')
+
 	close_plot(fig, ax, "true_path.eps")
 		
 
@@ -146,10 +149,11 @@ def simulate_running_goal_inference(runner_model, poly_map, locs):
 
 
 def goal_inference_while_moving(runner_model, poly_map, locs):
+	sim_id = str(int(time.time()))
 	x1,y1,x2,y2 = poly_map
 	# plan for the runner
 	start = 4
-	goal = 0
+	goal = 1
 	path = run_rrt_opt( np.atleast_2d(locs[start]), 
 		np.atleast_2d(locs[goal]), x1,y1,x2,y2 )
 
@@ -159,14 +163,18 @@ def goal_inference_while_moving(runner_model, poly_map, locs):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'lightgrey', linestyle="-", linewidth=1)
 
-	close_plot(fig, ax, "true_path.eps")
+	ax.scatter( path[0][0],  path[0][1] , s = 120, facecolors='none', edgecolors='b')
+	ax.scatter( path[-1][0],  path[-1][1] , s = 120, facecolors='none', edgecolors='r')
+
+	close_plot(fig, ax, "time/" + sim_id + "_true_path.eps")
 
 	#inferrred_goals = { 0:0, 1:0, 2:0, 3:0, 4:0, 5:0 }
 	inferrred_goals = []
-	for t in xrange(5, 10):
+	for t in xrange(0, min(25, len(path))):
+		fig, ax = setup_plot(poly_map, locs)
 		Q = ProgramTrace(runner_model)
 
-		Q.condition("run_start", 4)
+		Q.condition("run_start", start)
 		Q.condition("t", t) 
 		# condition on previous time steps
 		for prev_t in xrange(t):
@@ -175,21 +183,25 @@ def goal_inference_while_moving(runner_model, poly_map, locs):
 			ax.scatter( path[prev_t][0],  path[prev_t][1] , s = 70, facecolors='none', edgecolors='b')
 		ax.scatter( path[t][0],  path[t][1] , s = 80, facecolors='none', edgecolors='r')
 
-		post_sample_traces = run_inference(Q, post_samples=5, samples=1)
+		post_sample_traces = run_inference(Q, post_samples=10, samples=16)
 
 		goal_list = []
 		# show post sample traces on map
 		for trace in post_sample_traces:
 			inferred_goal = trace["run_goal"]
 			goal_list.append(inferred_goal)
-			print goal_list
-			path = trace["runner_plan"]
-			for i in range( 0, len(path)-1):
-				ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			#print goal_list
+			inff_path = trace["runner_plan"]
+			for i in range( 0, len(inff_path)-1):
+				ax.plot( [inff_path[i][0], inff_path[i+1][0] ], [ inff_path[i][1], inff_path[i+1][1]], 
 					'red', linestyle="--", linewidth=1, alpha = 0.2)
 
 		inferrred_goals.append(goal_list)
-		close_plot(fig, ax, "time/post-samples-t-"+str(t)+".eps")
+		print "goal list:", goal_list
+		close_plot(fig, ax, "time/" + sim_id + "-post-samples-t-"+str(t)+".eps")
+
+	print "inferrred_goals:", inferrred_goals
+	return inferrred_goals, sim_id
 
 
 def plot_inferred_goals_over_time(inferrred_goals):
@@ -200,14 +212,42 @@ def plot_inferred_goals_over_time(inferrred_goals):
 	plt.xlabel('time step')
 	plt.savefig('inferred_goals_over_time.eps')
 
-def run_inference(trace, post_samples=8, samples=32):
+def run_inference(trace, post_samples=16, samples=32):
 	post_traces = []
 	for i in  tqdm(xrange(post_samples)):
 		#post_sample_trace = importance_sampling(trace, samples)
-		post_sample_trace = metroplis_hastings(trace, samples)
+		post_sample_trace = importance_sampling(trace, samples)
 		post_traces.append(post_sample_trace)
 	return post_traces
 
+
+def line_plotting(inferrred_goals, sim_id):
+
+	#inferrred_goals =  [[0,1,2,3,4,5], [0,0,1,2,3,4], [0,0,0,1,2], [0,0,0,0,1], [0,0,0,0,0]]
+
+	goal_probabilities = [[], [], [], [], [], []]
+	for t in xrange(len(inferrred_goals)):
+		inf_goals_at_t = inferrred_goals[t]
+		total_num_inferences = len(inf_goals_at_t)
+		# turn into percents
+		for goal in xrange(6):
+			goal_cnt = inf_goals_at_t.count(goal)
+			goal_prob = goal_cnt / float(total_num_inferences)
+			goal_probabilities[goal].append(goal_prob)
+
+	print "goal_probabilities", goal_probabilities
+
+
+
+	fig = plt.figure()
+	ax = fig.add_subplot(111)
+	for i in xrange(len(goal_probabilities)):
+		probs = goal_probabilities[i]
+		ax.plot(probs, label="Goal " + str(i))
+	ax.legend(loc='upper left')
+	ax.ylabel('probability of goal')
+	ax.xlabel('time step')
+	fig.savefig('time/' + sim_id + '_infgoals_IS_16_32.eps')
 
 
 
@@ -229,7 +269,13 @@ if __name__ == '__main__':
 	Q = ProgramTrace(runner_model)
 
 	#simulate_running_goal_inference(runner_model, poly_map, locs)
-	goal_inference_while_moving(runner_model, poly_map, locs)
+	inferrred_goals, sim_id= goal_inference_while_moving(runner_model, poly_map, locs)
+	line_plotting(inferrred_goals, sim_id)
+
+	#practice_line_plotting()
+
+
+
 
 	# Q.condition("run_start", 0)
 	# Q.condition("partner_run_start", 4)
