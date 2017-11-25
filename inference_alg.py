@@ -11,7 +11,6 @@ def importance_sampling(Q, particles):
 	scores = np.arange(particles)
 
 	for i in xrange(particles):
-		#deep copy is not working -- this should be fixed -- double check iris
 		score, trace_vals = Q.run_model()
 		traces.append(copy.deepcopy(trace_vals))
 		scores[i] = score
