@@ -243,6 +243,58 @@ def get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, path, 
 	return goal_probabilities.index(max(goal_probabilities))
 
 
+def plot_movements(a_path, b_path, sim_id, poly_map, locs, t):
+	fig, ax = setup_plot(poly_map, locs)
+	# PLOTTING MOVEMENTS
+	path = a_path
+	for i in range(0, t):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'black', linestyle=":", linewidth=2, label="Alice")
+	# mark the runner at time t on its plan
+	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	path = b_path
+	for i in range(0, t):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'black', linestyle="--", linewidth=2, label="Bob")
+	# mark the runner at time t on its plan
+	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
+	close_plot(fig, ax, "collab/" + sim_id + "FL-t-"+str(t)+".eps")
+
+
+
+def follow_the_leader_goal_inference(runner_model, poly_map, locs):
+	sim_id = str(int(time.time()))
+	x1,y1,x2,y2 = poly_map
+
+	#Alice will start at some location
+	alice_start = 4
+	goal = 1
+	alice_path = run_rrt_opt( np.atleast_2d(locs[alice_start]), 
+		np.atleast_2d(locs[goal]), x1,y1,x2,y2 )
+
+	#Bob will start st some other location
+	bob_start = 5
+	bob_path = [locs[bob_start]]
+
+	# for each time step
+	for t in xrange(0, 25):
+		
+		#Bob will conduct goal inference on observations of alice's location
+		inferred_alice_goal = get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, 
+			alice_path, alice_start, t, "FL-A")
+
+		#Bob will move toward Alice's goal after planning
+		bob_plan = run_rrt_opt( np.atleast_2d(bob_path[-1]), 
+		np.atleast_2d(locs[inferred_alice_goal]), x1,y1,x2,y2 )
+		bob_path.append(bob_plan[1])
+
+		plot_movements(alice_path, bob_path, sim_id, poly_map, locs, t)
+
+
+
+
+
 
 def two_agent_goal_inference_while_moving(runner_model, poly_map, locs):
 	sim_id = str(int(time.time()))
@@ -347,9 +399,11 @@ if __name__ == '__main__':
 	# inferrred_goals, sim_id= goal_inference_while_moving(runner_model, poly_map, locs)
 	# line_plotting(inferrred_goals, sim_id)
 
+	# --------- follow the leader using goal inference tools ----------
+	follow_the_leader_goal_inference(runner_model, poly_map, locs)
 
 	# --------- first experiment of agent "collaboration" -------------
-	two_agent_goal_inference_while_moving(runner_model, poly_map, locs)
+	#two_agent_goal_inference_while_moving(runner_model, poly_map, locs)
 
 
 
