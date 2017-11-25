@@ -247,29 +247,26 @@ def get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, path, 
 def nested_most_probable_goal_location(Q, poly_map, locs, sim_id, path, start, t, character):
 	fig, ax = setup_plot(poly_map, locs)
 
-	Q.condition("run_start", start)
+	Q.condition("co_run_start", start)
 	Q.condition("t", t) 
 	# condition on previous time steps
 	for prev_t in xrange(t):
-		Q.condition("run_x_"+str(prev_t), path[prev_t][0])
-		Q.condition("run_y_"+str(prev_t), path[prev_t][1])
+		Q.condition("co_run_x_"+str(prev_t), path[prev_t][0])
+		Q.condition("co_run_y_"+str(prev_t), path[prev_t][1])
 		ax.scatter( path[prev_t][0],  path[prev_t][1] , s = 70, facecolors='none', edgecolors='b')
 	ax.scatter( path[t][0],  path[t][1] , s = 80, facecolors='none', edgecolors='r')
 
 	Q.condition("same_goal", True)
-	print Q.obs
-	print "in nested"
-	raw_input()
 
 	post_sample_traces = run_inference(Q, post_samples=10, samples=16)
 
 	goal_list = []
 	# show post sample traces on map
 	for trace in post_sample_traces:
-		inferred_goal = trace["run_goal"]
+		inferred_goal = trace["co_run_goal"]
 		goal_list.append(inferred_goal)
 		#print goal_list
-		inff_path = trace["runner_plan"]
+		inff_path = trace["co_runner_plan"]
 		for i in range( 0, len(inff_path)-1):
 			ax.plot( [inff_path[i][0], inff_path[i+1][0] ], [ inff_path[i][1], inff_path[i+1][1]], 
 				'red', linestyle="--", linewidth=1, alpha = 0.2)
@@ -339,13 +336,13 @@ def follow_the_leader_goal_inference(runner_model, poly_map, locs):
 		plot_movements(alice_path, bob_path, sim_id, poly_map, locs, t, code="FL-t")
 
 def add_Obs(Q, start, t, path):
-	Q.set_obs("partner_run_start", start)
+	Q.set_obs("run_start", start)
 
 	Q.set_obs("t", t)
 	# condition on previous time steps
 	for prev_t in xrange(t):
-		Q.set_obs("partner_run_x_"+str(prev_t), path[prev_t][0])
-		Q.set_obs("partner_run_y_"+str(prev_t), path[prev_t][1])
+		Q.set_obs("run_x_"+str(prev_t), path[prev_t][0])
+		Q.set_obs("run_y_"+str(prev_t), path[prev_t][1])
 	return Q
 
 
@@ -495,8 +492,8 @@ if __name__ == '__main__':
 	# two_agent_goal_inference_while_moving(runner_model, poly_map, locs)
 
 	#---------- nested collab experiment ------------------------------
-	runner_model = TOMCollabRunner(seg_map=poly_map, locs=locs, isovist=isovist)
-	two_agent_nested_goal_inference_while_moving(runner_model, poly_map, locs, nested_model=runner_model)
+	runner_model = TOMCollabRunner(seg_map=poly_map, locs=locs, isovist=isovist, nested_model=runner_model)
+	two_agent_nested_goal_inference_while_moving(runner_model, poly_map, locs)
 
 
 
