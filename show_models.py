@@ -203,6 +203,7 @@ def goal_inference_while_moving(runner_model, poly_map, locs):
 	print "inferrred_goals:", inferrred_goals
 	return inferrred_goals, sim_id
 
+
 def get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, path, start, t, character):
 	fig, ax = setup_plot(poly_map, locs)
 	Q = ProgramTrace(runner_model)
@@ -242,6 +243,43 @@ def get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, path, 
 
 	return goal_probabilities.index(max(goal_probabilities))
 
+def get_most_probable_goal_location_no_start(runner_model, poly_map, locs, sim_id, path, t, character):
+	fig, ax = setup_plot(poly_map, locs)
+	Q = ProgramTrace(runner_model)
+
+	Q.condition("t", t) 
+	# condition on previous time steps
+	for prev_t in xrange(t):
+		Q.condition("run_x_"+str(prev_t), path[prev_t][0])
+		Q.condition("run_y_"+str(prev_t), path[prev_t][1])
+		ax.scatter( path[prev_t][0],  path[prev_t][1] , s = 70, facecolors='none', edgecolors='b')
+	ax.scatter( path[t][0],  path[t][1] , s = 80, facecolors='none', edgecolors='r')
+
+	post_sample_traces = run_inference(Q, post_samples=10, samples=16)
+
+	goal_list = []
+	# show post sample traces on map
+	for trace in post_sample_traces:
+		inferred_goal = trace["run_goal"]
+		goal_list.append(inferred_goal)
+		#print goal_list
+		inff_path = trace["runner_plan"]
+		for i in range( 0, len(inff_path)-1):
+			ax.plot( [inff_path[i][0], inff_path[i+1][0] ], [ inff_path[i][1], inff_path[i+1][1]], 
+				'red', linestyle="--", linewidth=1, alpha = 0.2)
+
+	close_plot(fig, ax, "collab/" + sim_id + character + "-post-samples-t-"+str(t)+".eps")
+
+	# list with probability for each goal
+	goal_probabilities = []
+	total_num_inferences = len(goal_list)
+	# turn into percents
+	for goal in xrange(6):
+		goal_cnt = goal_list.count(goal)
+		goal_prob = goal_cnt / float(total_num_inferences)
+		goal_probabilities.append(goal_prob)
+
+	return goal_probabilities.index(max(goal_probabilities))
 
 def plot_movements(a_path, b_path, sim_id, poly_map, locs, t):
 	fig, ax = setup_plot(poly_map, locs)
@@ -269,13 +307,14 @@ def follow_the_leader_goal_inference(runner_model, poly_map, locs):
 
 	#Alice will start at some location
 	alice_start = 4
-	goal = 1
+	goal = 3
 	alice_path = run_rrt_opt( np.atleast_2d(locs[alice_start]), 
 		np.atleast_2d(locs[goal]), x1,y1,x2,y2 )
 
 	#Bob will start st some other location
 	bob_start = 5
-	bob_path = [locs[bob_start]]
+	#bob_path = [locs[bob_start]]
+	bob_path = [[0.2, 0.15]]
 
 	# for each time step
 	for t in xrange(0, 25):
