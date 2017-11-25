@@ -203,6 +203,80 @@ def goal_inference_while_moving(runner_model, poly_map, locs):
 	print "inferrred_goals:", inferrred_goals
 	return inferrred_goals, sim_id
 
+def get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, path, start, t, character):
+	fig, ax = setup_plot(poly_map, locs)
+	Q = ProgramTrace(runner_model)
+
+	Q.condition("run_start", start)
+	Q.condition("t", t) 
+	# condition on previous time steps
+	for prev_t in xrange(t):
+		Q.condition("run_x_"+str(prev_t), path[prev_t][0])
+		Q.condition("run_y_"+str(prev_t), path[prev_t][1])
+		ax.scatter( path[prev_t][0],  path[prev_t][1] , s = 70, facecolors='none', edgecolors='b')
+	ax.scatter( path[t][0],  path[t][1] , s = 80, facecolors='none', edgecolors='r')
+
+	post_sample_traces = run_inference(Q, post_samples=10, samples=16)
+
+	goal_list = []
+	# show post sample traces on map
+	for trace in post_sample_traces:
+		inferred_goal = trace["run_goal"]
+		goal_list.append(inferred_goal)
+		#print goal_list
+		inff_path = trace["runner_plan"]
+		for i in range( 0, len(inff_path)-1):
+			ax.plot( [inff_path[i][0], inff_path[i+1][0] ], [ inff_path[i][1], inff_path[i+1][1]], 
+				'red', linestyle="--", linewidth=1, alpha = 0.2)
+
+	close_plot(fig, ax, "collab/" + sim_id + character + "-post-samples-t-"+str(t)+".eps")
+
+	# list with probability for each goal
+	goal_probabilities = []
+	total_num_inferences = len(goal_list)
+	# turn into percents
+	for goal in xrange(6):
+		goal_cnt = goal_list.count(goal)
+		goal_prob = goal_cnt / float(total_num_inferences)
+		goal_probabilities.append(goal_prob)
+
+	return goal_probabilities.index(max(goal_probabilities))
+
+
+
+def two_agent_goal_inference_while_moving(runner_model, poly_map, locs):
+	sim_id = str(int(time.time()))
+	x1,y1,x2,y2 = poly_map
+
+	#Alice will start at some location
+	alice_start = 4
+	alice_path = [locs[alice_start]]
+
+	#Bob will start st some other location
+	bob_start = 5
+	bob_path = [locs[bob_start]]
+
+	# for each time step
+	for t in xrange(0, 25):
+		#Alice will conduct goal inference on observations of bob's location
+		inferred_bob_goal = get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, 
+			bob_path, bob_start, t, "B")
+		
+		#Bob will conduct goal inference on observations of alice's location
+		inferred_alice_goal = get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, 
+			alice_path, alice_start, t,"A")
+
+		#Alice will move toward Bob's goal after planning
+		alice_plan = run_rrt_opt( np.atleast_2d(alice_path[-1]), 
+		np.atleast_2d(locs[inferred_bob_goal]), x1,y1,x2,y2 )
+		alice_path.append(alice_plan[1])
+
+		#Bob will move toward Alice's goal after planning
+		bob_plan = run_rrt_opt( np.atleast_2d(bob_path[-1]), 
+		np.atleast_2d(locs[inferred_alice_goal]), x1,y1,x2,y2 )
+		bob_path.append(bob_plan[1])
+
+
 
 def plot_inferred_goals_over_time(inferrred_goals):
 
@@ -237,8 +311,6 @@ def line_plotting(inferrred_goals, sim_id):
 
 	print "goal_probabilities", goal_probabilities
 
-
-
 	fig = plt.figure()
 	ax = fig.add_subplot(111)
 	for i in xrange(len(goal_probabilities)):
@@ -266,17 +338,25 @@ if __name__ == '__main__':
 	isovist = i.Isovist( load_isovist_map() )
 
 	runner_model = TeamRunner(seg_map=poly_map, locs=locs, isovist=isovist)
-	Q = ProgramTrace(runner_model)
+	#Q = ProgramTrace(runner_model)
 
 	#simulate_running_goal_inference(runner_model, poly_map, locs)
-	inferrred_goals, sim_id= goal_inference_while_moving(runner_model, poly_map, locs)
-	line_plotting(inferrred_goals, sim_id)
-
-	#practice_line_plotting()
 
 
+	# --------- run goal inference on new observations ----------------
+	# inferrred_goals, sim_id= goal_inference_while_moving(runner_model, poly_map, locs)
+	# line_plotting(inferrred_goals, sim_id)
 
 
+	# --------- first experiment of agent "collaboration" -------------
+	two_agent_goal_inference_while_moving(runner_model, poly_map, locs)
+
+
+
+
+
+
+	# old -----------------------------
 	# Q.condition("run_start", 0)
 	# Q.condition("partner_run_start", 4)
 
