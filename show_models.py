@@ -345,6 +345,50 @@ def add_Obs(Q, start, t, path):
 		Q.set_obs("run_y_"+str(prev_t), path[prev_t][1])
 	return Q
 
+def two_agent_par_goal_inference_while_moving(runner_model, poly_map, locs):
+	sim_id = str(int(time.time()))
+	x1,y1,x2,y2 = poly_map
+
+	#Alice will start at some location
+	alice_start = 4
+	alice_path = [locs[alice_start]]
+
+	#Bob will start st some other location
+	bob_start = 5
+	bob_path = [locs[bob_start]]
+
+	# for each time step
+	for t in xrange(0, 25):
+
+		#Alice will conduct goal inference on observations of bob's location
+		inferred_bob_goal = get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, 
+			bob_path, bob_start, t, "B")
+
+		#Alice will conduct nested goal inference on observations of bob's location
+		Q = ProgramTrace(runner_model)
+		Q.condition("partner_goal", inferred_bob_goal)
+		inferred_alice_goal = nested_most_probable_goal_location(Q, poly_map, locs, sim_id, 
+			bob_path, bob_start, t,"B")
+
+		#Alice will move toward Bob's goal after planning
+		alice_plan = run_rrt_opt( np.atleast_2d(alice_path[-1]), 
+		np.atleast_2d(locs[inferred_bob_goal]), x1,y1,x2,y2 )
+		alice_path.append(alice_plan[1])
+		
+		#Bob will conduct goal inference on observations of alice's location
+		inferred_alice_goal = nested_most_probable_goal_location(Q, poly_map, locs, sim_id, 
+			alice_path, alice_start, t,"A")
+
+		#Bob will conduct goal inference on observations of alice's location
+		inferred_alice_goal = get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, 
+			alice_path, alice_start, t,"A")
+
+		#Bob will move toward Alice's goal after planning
+		bob_plan = run_rrt_opt( np.atleast_2d(bob_path[-1]), 
+		np.atleast_2d(locs[inferred_alice_goal]), x1,y1,x2,y2 )
+		bob_path.append(bob_plan[1])
+
+		plot_movements(alice_path, bob_path, sim_id, poly_map, locs, t, code="nested")
 
 def two_agent_nested_goal_inference_while_moving(runner_model, poly_map, locs):
 	sim_id = str(int(time.time()))
