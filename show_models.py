@@ -426,14 +426,6 @@ def two_agent_goal_inference_while_moving(runner_model, poly_map, locs):
 
 
 
-def plot_inferred_goals_over_time(inferrred_goals):
-
-	#total_time_steps = len(inferrred_goals)
-	#plt.plot(range(total_time_steps), )
-	plt.ylabel('probability of goal')
-	plt.xlabel('time step')
-	plt.savefig('inferred_goals_over_time.eps')
-
 def run_inference(trace, post_samples=16, samples=32):
 	post_traces = []
 	for i in  tqdm(xrange(post_samples)):
@@ -465,8 +457,8 @@ def line_plotting(inferrred_goals, sim_id, code="", directory="time"):
 		probs = goal_probabilities[i]
 		ax.plot(probs, label="Goal " + str(i))
 	ax.legend(loc='upper left')
-	ax.ylabel('probability of goal')
-	ax.xlabel('time step')
+	ax.set_ylabel('probability of goal')
+	ax.set_xlabel('time step')
 	fig.savefig( directory +'/' + sim_id + code + '_infering_goals.eps')
 
 
@@ -496,11 +488,11 @@ if __name__ == '__main__':
 	# follow_the_leader_goal_inference(runner_model, poly_map, locs)
 
 	# --------- first experiment of agent "collaboration" -------------
-	two_agent_goal_inference_while_moving(runner_model, poly_map, locs)
+	#two_agent_goal_inference_while_moving(runner_model, poly_map, locs)
 
 	#---------- nested collab experiment ------------------------------
-	#runner_model = TOMCollabRunner(seg_map=poly_map, locs=locs, isovist=isovist, nested_model=runner_model)
-	#two_agent_nested_goal_inference_while_moving(runner_model, poly_map, locs)
+	tom_runner_model = TOMCollabRunner(seg_map=poly_map, locs=locs, isovist=isovist, nested_model=runner_model)
+	two_agent_nested_goal_inference_while_moving(tom_runner_model, poly_map, locs)
 
 
 

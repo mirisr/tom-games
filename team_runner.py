@@ -134,6 +134,7 @@ class TOMCollabRunner(object):
 		for prev_t in xrange(t):
 			q.condition("run_x_"+str(prev_t), Q.get_obs("run_x_"+str(prev_t)))
 			q.condition("run_y_"+str(prev_t), Q.get_obs("run_y_"+str(prev_t)))
+		
 		post_sample_traces = self.run_inference(q, post_samples=10, samples=16)
 		return post_sample_traces
 
