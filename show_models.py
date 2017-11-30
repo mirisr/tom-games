@@ -25,10 +25,10 @@ def plot(poly_map, plot_name=None, locs=None):
 	x1,y1,x2,y2 = poly_map
 	#x1,y1,x2,y2 = polygons_to_segments( load_polygons( "./map_2.txt" ) )
 	for i in xrange(x1.shape[0]):
-		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black' )
+		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black', linewidth=1 )
 
 
-	add_locations = True
+	add_locations = False
 	if add_locations:
 		for i in xrange(len(locs)):
 			ax.scatter( locs[i][0],  locs[i][1] , color="Green", s = 70, marker='+', linestyle='-')
@@ -53,19 +53,20 @@ def setup_plot(poly_map, locs=None):
 	# plot map
 	x1,y1,x2,y2 = poly_map
 	for i in xrange(x1.shape[0]):
-		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black' )
+		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black', linewidth=1  )
 
 	# show possible start and goal locations
 	add_locations = True
 	if add_locations:
 		for i in xrange(len(locs)):
-			ax.scatter( locs[i][0],  locs[i][1] , color="Green", s = 70, marker='+', linestyle='-')
-			ax.scatter( locs[i][0],  locs[i][1] , s = 95, facecolors='none', edgecolors='g')
+			ax.scatter( locs[i][0],  locs[i][1] , color="Green", s = 50, marker='+', linestyle='-')
+			ax.scatter( locs[i][0],  locs[i][1] , s = 75, facecolors='none', edgecolors='g')
 	return fig, ax
 
 def close_plot(fig, ax, plot_name=None):
 	if plot_name is None:
 		plot_name = str(int(time.time()))+".eps"
+	print "plot_name:", plot_name
 
 	ax.set_ylim(ymax = 1, ymin = 0)
 	ax.set_xlim(xmax = 1, xmin = 0)
@@ -83,22 +84,25 @@ def plot_runner(poly_map, trace, locs=None):
 	path = trace["runner_plan"]
 	for i in range( 0, len(path)-1):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-			'black', linestyle=":", linewidth=2)
+			'black', linestyle=":", linewidth=1)
+		# if you want to show each time step in blue
+	close_plot(fig, ax, plot_name=str(int(time.time()))+"-1.eps")
+
+	for i in range( 0, len(path)):
+		ax.scatter( path[i][0],  path[i][1] , s = 35, facecolors='none', edgecolors='blue')
+
 	# mark the runner at time t on its plan
-	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='b')
+	#ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='b')
 
-	# plot partner's plan
-	path = trace["partner_plan"]
-	for i in range( 0, len(path)-1):
-		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-			'grey', linestyle="--", linewidth=2)
-	# mark the parter on its plan on time t
-	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+	# # plot partner's plan
+	# path = trace["partner_plan"]
+	# for i in range( 0, len(path)-1):
+	# 	ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+	# 		'grey', linestyle="--", linewidth=1)
+	# # mark the parter on its plan on time t
+	# ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
 
-
-
-
-	close_plot(fig, ax)
+	close_plot(fig, ax, plot_name=str(int(time.time()))+"-2.eps")
 
 
 def simulate_running_goal_inference(runner_model, poly_map, locs):
@@ -465,17 +469,30 @@ def line_plotting(inferrred_goals, sim_id, code="", directory="time"):
 
 if __name__ == '__main__':
 	#plot("test.eps")
-	# setup
-	locs_map_2 = [[0.4, 0.062] ,
-			[0.964, 0.064] ,
-			[0.442, 0.37] ,
-			[0.1, 0.95] ,
-			[0.946, 0.90] ,
-			[0.066, 0.538]]
 
-	locs = locs_map_2
-	poly_map  = polygons_to_segments( load_polygons( "./map_2.txt" ) )
+
+	# ------------- setup for map 2 ---------------
+	# locs_map_2 = [[0.4, 0.062] ,
+	# 		[0.964, 0.064] ,
+	# 		[0.442, 0.37] ,
+	# 		[0.1, 0.95] ,
+	# 		[0.946, 0.90] ,
+	# 		[0.066, 0.538]]
+	# locs = locs_map_2
+	# poly_map  = polygons_to_segments( load_polygons( "./map_2.txt" ) )
+	# isovist = i.Isovist( load_isovist_map( fn="./map_2.txt" ) )
+
+	# ------------- setup for map "paths" large bremen map ---------------
+	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
+		[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
+		[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
+		[ 0.432, 1-0.098 ] ]
+	poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
 	isovist = i.Isovist( load_isovist_map() )
+
+	#plots the map and the locations if said so in the function
+	#plot(seg_map, plot_name="large_map_blank.eps", locs=locs)
+	
 
 
 	#---------------- Basic Runner model -------------------------------
@@ -491,11 +508,18 @@ if __name__ == '__main__':
 	#two_agent_goal_inference_while_moving(runner_model, poly_map, locs)
 
 	#---------- nested collab experiment ------------------------------
-	tom_runner_model = TOMCollabRunner(seg_map=poly_map, locs=locs, isovist=isovist, nested_model=runner_model)
-	two_agent_nested_goal_inference_while_moving(tom_runner_model, poly_map, locs)
+	#tom_runner_model = TOMCollabRunner(seg_map=poly_map, locs=locs, isovist=isovist, nested_model=runner_model)
+	#two_agent_nested_goal_inference_while_moving(tom_runner_model, poly_map, locs)
 
-
-
+	# ---------- plot generative model of simple runner model
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", 7)
+	Q.condition("run_goal", 0)
+	score, trace = Q.run_model()
+	plot_runner(poly_map, trace, locs=locs)
+	print("time:", trace["t"])
+	print("start:", trace["run_start"])
+	print("goal:", trace["run_goal"])
 
 
 
