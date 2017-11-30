@@ -9,6 +9,7 @@ from matplotlib.collections import PatchCollection
 import cPickle
 from team_runner import BasicRunner
 from team_runner import TOMCollabRunner
+from team_runner import BasicRunnerPOM
 from inference_alg import importance_sampling, metroplis_hastings
 from program_trace import ProgramTrace
 from planner import * 
@@ -465,6 +466,49 @@ def line_plotting(inferrred_goals, sim_id, code="", directory="time"):
 	ax.set_xlabel('time step')
 	fig.savefig( directory +'/' + sim_id + code + '_infering_goals.eps')
 
+def run_basic_partial_model(locs, poly_map, isovist):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", 2)
+	Q.condition("run_goal", 6)
+	Q.condition("other_run_start", 5)
+	Q.condition("other_run_goal", 8)
+	Q.condition("t", 10)
+
+	score, trace = Q.run_model()
+
+	fig, ax = setup_plot(poly_map, locs, )
+
+	path = trace["my_plan"]
+	t = trace["t"]
+	for i in range(0, t):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'black', linestyle=":", linewidth=2, label="Agent's Plan")
+		
+
+
+	# mark the runner at time t on its plan
+	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	path = trace["other_plan"]
+	for i in range(0, t):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'black', linestyle="--", linewidth=1, label="Other's Plan")
+		if trace["detected_t_"+ str(i)] == True:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+		else:
+			ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+	# mark the runner at time t on its plan
+	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
+
+	close_plot(fig, ax, plot_name="PO_forward_runs/run_and_catch-"+str(int(time.time()))+".eps")
+
+	print "time:", trace["t"]
+	print "other_run_start:", trace["other_run_start"]
+	print "other_run_goal:", trace["other_run_goal"]
+
+	print "run_start:", trace["run_start"]
+	print "run_goal:", trace["run_goal"]
 
 
 if __name__ == '__main__':
@@ -496,7 +540,7 @@ if __name__ == '__main__':
 
 
 	#---------------- Basic Runner model -------------------------------
-	runner_model = BasicRunner(seg_map=poly_map, locs=locs, isovist=isovist)
+	#runner_model = BasicRunner(seg_map=poly_map, locs=locs, isovist=isovist)
 	# --------- run goal inference on new observations ----------------
 	# inferrred_goals, sim_id= goal_inference_while_moving(runner_model, poly_map, locs)
 	# line_plotting(inferrred_goals, sim_id)
@@ -512,14 +556,18 @@ if __name__ == '__main__':
 	#two_agent_nested_goal_inference_while_moving(tom_runner_model, poly_map, locs)
 
 	# ---------- plot generative model of simple runner model
-	Q = ProgramTrace(runner_model)
-	Q.condition("run_start", 7)
-	Q.condition("run_goal", 0)
-	score, trace = Q.run_model()
-	plot_runner(poly_map, trace, locs=locs)
-	print("time:", trace["t"])
-	print("start:", trace["run_start"])
-	print("goal:", trace["run_goal"])
+	# Q = ProgramTrace(runner_model)
+	# Q.condition("run_start", 4)
+	# Q.condition("run_goal", 0)
+	# score, trace = Q.run_model()
+	# plot_runner(poly_map, trace, locs=locs)
+	# print("time:", trace["t"])
+	# print("start:", trace["run_start"])
+	# print("goal:", trace["run_goal"])
+
+	#-----------run basic partially observable model and plot----------
+	#for i in xrange(10):
+	run_basic_partial_model(locs, poly_map, isovist)
 
 
 
