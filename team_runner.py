@@ -1,5 +1,5 @@
 import program_trace as program_trace
-from methods import load_isovist_map, scale_up, direction, load_segs, point_in_obstacle, get_clear_goal
+from methods import load_isovist_map, scale_up, direction, dist, load_segs, point_in_obstacle, get_clear_goal
 from my_rrt import *
 import copy
 from scipy.misc import logsumexp
@@ -140,7 +140,12 @@ class BasicRunnerPOM(object):
 			next_loc = scale_up(my_noisy_plan[i+1])
 			fv = direction(next_loc, cur_loc)
 
+			# face the runner if within certain radius
+			if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .3:
+				fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
+
 			intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
+			Q.keep("intersections-t-"+str(i), intersections)
 
 			# does the enforcer see me at time 't'
 			other_loc = scale_up(other_noisy_plan[i])
