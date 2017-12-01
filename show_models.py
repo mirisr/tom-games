@@ -439,6 +439,14 @@ def run_inference(trace, post_samples=16, samples=32):
 		post_traces.append(post_sample_trace)
 	return post_traces
 
+def run_inference_MH(trace, post_samples=16, samples=32):
+	post_traces = []
+	for i in  tqdm(xrange(post_samples)):
+		#post_sample_trace = importance_sampling(trace, samples)
+		post_sample_trace = metroplis_hastings(trace, samples)
+		post_traces.append(post_sample_trace)
+	return post_traces
+
 
 def line_plotting(inferrred_goals, sim_id, code="", directory="time"):
 
@@ -481,7 +489,7 @@ def run_inference_PO_path_conditioned(locs, poly_map, isovist):
 		Q.condition("other_run_x_"+str(i), other_agent_path[i][0])
 		Q.condition("other_run_y_"+str(i), other_agent_path[i][1])
 		#Q.condition("detected_t_"+str(i), False)
-	for i in xrange(5, 20):
+	for i in xrange(5, 10):
 		Q.condition("detected_t_"+str(i), True)
 
 
@@ -497,6 +505,9 @@ def run_inference_PO_path_conditioned(locs, poly_map, isovist):
 		for i in range(0, t):
 			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 				'red', linestyle="--", linewidth=1, alpha = 0.2, label="Agent's Plan")
+		for i in range(t, 39):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'grey', linestyle=":", linewidth=1)
 
 		# mark the runner at time t on its plan
 		ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
@@ -510,12 +521,17 @@ def run_inference_PO_path_conditioned(locs, poly_map, isovist):
 				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 			else:
 				ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+
+		for i in range(t, 39):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'grey', linestyle="--", linewidth=1, label="Other's Plan")
+
 		# mark the runner at time t on its plan
 		ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
 
 
 
-	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned-1/hear_run_and_catch-10-32"+str(int(time.time()))+".eps")
+	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned-1/IShear_run_and_catch-10-32"+str(int(time.time()))+".eps")
 
 
 
@@ -539,6 +555,22 @@ def run_basic_partial_model(locs, poly_map, isovist):
 	score, trace = Q.run_model()
 
 	fig, ax = setup_plot(poly_map, locs, )
+
+	for i in xrange(5, 11):
+		intersections = trace["intersections-t-"+str(i)]
+		
+		# show last isovist
+		if not intersections is None:
+			intersections = np.asarray(intersections)
+			intersections /= 500.0
+			if not intersections.shape[0] == 0:
+				patches = [ Polygon(intersections, True)]
+				p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.8)
+				colors = 100*np.random.rand(len(patches))
+				p.set_array(np.array(colors))
+				ax.add_collection(p)
+
+
 
 	path = trace["my_plan"]
 	t = trace["t"]
@@ -570,19 +602,7 @@ def run_basic_partial_model(locs, poly_map, isovist):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'grey', linestyle="--", linewidth=1, label="Other's Plan")
 
-	# intersections = trace["intersections-t-"+str(10)]
-	# intersections = np.asarray(intersections)
-	# intersections /= 500.0
-
-	# # show last isovist
-	# if not intersections is None:
-	# 	if not intersections.shape[0] == 0:
-	# 		patches = [ Polygon(intersections, True)]
-	# 		p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.8)
-	# 		colors = 100*np.random.rand(len(patches))
-	# 		p.set_array(np.array(colors))
-	# 		ax.add_collection(p)
-	# 		print 
+	
 
 	close_plot(fig, ax, plot_name="PO_forward_runs/run_and_catch-"+str(int(time.time()))+".eps")
 
@@ -652,10 +672,10 @@ if __name__ == '__main__':
 
 	#-----------run basic partially observable model and plot----------
 	#for i in xrange(10):
-	#run_basic_partial_model(locs, poly_map, isovist)
+	run_basic_partial_model(locs, poly_map, isovist)
 
 	#-----------run basic PO model conditioned on other_path, start, goal, and t ---
-	run_inference_PO_path_conditioned(locs, poly_map, isovist)
+	#run_inference_PO_path_conditioned(locs, poly_map, isovist)
 
 
 

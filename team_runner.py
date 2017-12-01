@@ -140,18 +140,21 @@ class BasicRunnerPOM(object):
 			next_loc = scale_up(my_noisy_plan[i+1])
 			fv = direction(next_loc, cur_loc)
 
+			intersections = None
 			# face the runner if within certain radius
-			if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .3:
+			if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .35:
 				fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
+				intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
+			
+				# does the enforcer see me at time 't'
+				other_loc = scale_up(other_noisy_plan[i])
+				will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
+				detection_prob = 0.999*will_other_be_seen + 0.001*(1-will_other_be_seen) # ~ flip(seen*.999 + (1-seen*.001)
+				future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+			else:
+				future_detection = Q.flip( p=.001, name="detected_t_"+str(i) )
 
-			intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
 			Q.keep("intersections-t-"+str(i), intersections)
-
-			# does the enforcer see me at time 't'
-			other_loc = scale_up(other_noisy_plan[i])
-			will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
-			detection_prob = 0.999*will_other_be_seen + 0.001*(1-will_other_be_seen) # ~ flip(seen*.999 + (1-seen*.001)
-			future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
 
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("other_plan", other_noisy_plan)
