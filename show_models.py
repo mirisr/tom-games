@@ -466,6 +466,59 @@ def line_plotting(inferrred_goals, sim_id, code="", directory="time"):
 	ax.set_xlabel('time step')
 	fig.savefig( directory +'/' + sim_id + code + '_infering_goals.eps')
 
+def run_inference_PO_path_conditioned(locs, poly_map, isovist):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", 2)
+	Q.condition("run_goal", 6)
+	Q.condition("other_run_start", 5)
+	Q.condition("other_run_goal", 8)
+	t = 10
+	Q.condition("t", t)
+
+	other_agent_path = [[0.42499999999999999, 0.40900000000000003], [0.42637252682699389, 0.45015681250166928], [0.42341590262456913, 0.4990041011765457], [0.4379044695823372, 0.53904127684124392], [0.45788032502031573, 0.55940630406732961], [0.50799614070063526, 0.55464417160785029], [0.54654058973382436, 0.5808784272257409], [0.55952256198212424, 0.61299850534228906], [0.583496600005313, 0.65140274446045765], [0.6005654644648678, 0.69540383781443371], [0.61589998114275823, 0.72963695272460394], [0.63340952989938293, 0.77334914393651799], [0.63415333146793929, 0.81788817596701702], [0.63380864206140508, 0.85068496120846326], [0.6574056904956691, 0.89840736011907418], [0.67365232860101742, 0.92626170086940862], [0.67272997642459853, 0.92476136486233518], [0.670977615078586, 0.9256403675603595], [0.67335036075493437, 0.92761813409888549], [0.67196251574528953, 0.92641384269803029], [0.67098919832850146, 0.92568243002410999], [0.67525871466320719, 0.9229149307167801], [0.67844855732075227, 0.92569329907319242], [0.67321881540381412, 0.93152732857257847], [0.67417822959121554, 0.9200035804784289], [0.67214122482315442, 0.92764945851654945], [0.67164236239673092, 0.92684256939487508], [0.67804513322197213, 0.92666665228204315], [0.6761799161969908, 0.92395809094667547], [0.67542733927721299, 0.92361716626504453], [0.67634231767336883, 0.92658004688912743], [0.67439978040601001, 0.92269389652124378], [0.67429561506189239, 0.92744438186414235], [0.67170106709439659, 0.92538278500943594], [0.67276872621711614, 0.91832099282710455], [0.67247922731692655, 0.92554210689024119], [0.67518132475675507, 0.92729301768019035], [0.6763367594646077, 0.92438316567133738], [0.67522650957951036, 0.92475789453983981], [ 0.675,  0.925]]
+	for i in xrange(t+1):
+		Q.condition("other_run_x_"+str(i), other_agent_path[i][0])
+		Q.condition("other_run_y_"+str(i), other_agent_path[i][1])
+		Q.condition("detected_t_"+str(i), True)
+	for i in xrange(t+1, 40):
+		Q.condition("detected_t_"+str(i), False)
+
+
+	#score, trace = Q.run_model()
+	post_sample_traces = run_inference(Q, post_samples=10, samples=16)
+
+
+	fig, ax = setup_plot(poly_map, locs)
+	for trace in post_sample_traces:
+		
+		path = trace["my_plan"]
+		t = trace["t"]
+		for i in range(0, t):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'red', linestyle="--", linewidth=1, alpha = 0.2, label="Agent's Plan")
+
+		# mark the runner at time t on its plan
+		ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+
+		path = trace["other_plan"]
+
+		for i in range(0, t):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'black', linestyle="--", linewidth=1, label="Other's Plan")
+			if trace["detected_t_"+ str(i)] == True:
+				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+			else:
+				ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+		# mark the runner at time t on its plan
+		ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
+
+
+
+	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned-1/run_and_catch-10-16"+str(int(time.time()))+".eps")
+
+
+
 def run_basic_partial_model(locs, poly_map, isovist):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
 	Q = ProgramTrace(runner_model)
@@ -473,7 +526,8 @@ def run_basic_partial_model(locs, poly_map, isovist):
 	Q.condition("run_goal", 6)
 	Q.condition("other_run_start", 5)
 	Q.condition("other_run_goal", 8)
-	Q.condition("t", 10)
+	t = 10
+	Q.condition("t", t)
 
 	score, trace = Q.run_model()
 
@@ -491,6 +545,7 @@ def run_basic_partial_model(locs, poly_map, isovist):
 	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
 
 	path = trace["other_plan"]
+
 	for i in range(0, t):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'black', linestyle="--", linewidth=1, label="Other's Plan")
@@ -509,6 +564,7 @@ def run_basic_partial_model(locs, poly_map, isovist):
 
 	print "run_start:", trace["run_start"]
 	print "run_goal:", trace["run_goal"]
+	#print "other_plan:", trace["other_plan"]
 
 
 if __name__ == '__main__':
@@ -567,7 +623,10 @@ if __name__ == '__main__':
 
 	#-----------run basic partially observable model and plot----------
 	#for i in xrange(10):
-	run_basic_partial_model(locs, poly_map, isovist)
+	#run_basic_partial_model(locs, poly_map, isovist)
+
+	#-----------run basic PO model conditioned on other_path, start, goal, and t ---
+	run_inference_PO_path_conditioned(locs, poly_map, isovist)
 
 
 
