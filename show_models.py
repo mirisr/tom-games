@@ -554,11 +554,9 @@ def run_inference_PO_path_conditioned(locs, poly_map, isovist):
 
 
 
-	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/OP_MH_hear_run_and_catch-5-64-"+str(int(time.time()))+".eps")
+	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/inference/OP_MH_hear_run_and_find-5-64-"+str(int(time.time()))+".eps")
 
-
-
-def run_basic_partial_model(locs, poly_map, isovist):
+def run_conditioned_basic_partial_model(locs, poly_map, isovist):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
 	Q = ProgramTrace(runner_model)
 	Q.condition("run_start", 2)
@@ -571,23 +569,20 @@ def run_basic_partial_model(locs, poly_map, isovist):
 	for i in xrange(t):
 		Q.condition("other_run_x_"+str(i), other_agent_path[i][0])
 		Q.condition("other_run_y_"+str(i), other_agent_path[i][1])
-		#Q.condition("detected_t_"+str(i), False)
-	Q.condition("detected", True)
 
 	score, trace = Q.run_model()
 
 	fig, ax = setup_plot(poly_map, locs, )
 
-	if not trace["t_detected"] == -1:
-		intersections = trace["intersections-t-"+str(trace["t_detected"])]
-		
+	for i in trace["t_detected"]:
+		intersections = trace["intersections-t-"+str(i)]
 		# show last isovist
 		if not intersections is None:
 			intersections = np.asarray(intersections)
 			intersections /= 500.0
 			if not intersections.shape[0] == 0:
 				patches = [ Polygon(intersections, True)]
-				p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.8)
+				p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.2)
 				colors = 100*np.random.rand(len(patches))
 				p.set_array(np.array(colors))
 				ax.add_collection(p)
@@ -613,7 +608,7 @@ def run_basic_partial_model(locs, poly_map, isovist):
 	for i in range(0, t):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'blue', linestyle="--", linewidth=1, label="Other's Plan")
-		if trace["t_detected"] == i:
+		if i in trace["t_detected"]:
 			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 		# else:
 		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
@@ -623,12 +618,84 @@ def run_basic_partial_model(locs, poly_map, isovist):
 	for i in range(t, 39):
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'grey', linestyle="--", linewidth=1, label="Other's Plan")
-		if trace["t_detected"] == i:
+		if i in trace["t_detected"]:
 			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 
+	plt.figtext(0.92, 0.85, "Values", horizontalalignment='left', weight="bold") 
+	plt.figtext(0.92, 0.80, "A Start: " +str(trace["run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.75, "A Goal: " +str(trace["run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.70, "B Start: " +str(trace["other_run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.65, "B Goal: " +str(trace["other_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.60, "time step: " +str(trace["t"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.55, "A detected B count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
 	
+	plt.figtext(0.5, 0.01, "Log Score: " +str(score), horizontalalignment='center') 
+	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/single_samples/run_and_find-"+str(int(time.time()))+".eps")
 
-	close_plot(fig, ax, plot_name="PO_forward_runs/run_and_catch-"+str(int(time.time()))+".eps")
+
+def run_unconditioned_basic_partial_model(locs, poly_map, isovist):
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	Q = ProgramTrace(runner_model)
+
+	score, trace = Q.run_model()
+
+	fig, ax = setup_plot(poly_map, locs, )
+
+	for i in trace["t_detected"]:
+		intersections = trace["intersections-t-"+str(i)]
+		# show last isovist
+		if not intersections is None:
+			intersections = np.asarray(intersections)
+			intersections /= 500.0
+			if not intersections.shape[0] == 0:
+				patches = [ Polygon(intersections, True)]
+				p = PatchCollection(patches, cmap=matplotlib.cm.Set2, alpha=0.2)
+				colors = 100*np.random.rand(len(patches))
+				p.set_array(np.array(colors))
+				ax.add_collection(p)
+
+
+
+	path = trace["my_plan"]
+	t = trace["t"]
+	for i in range(0, t):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+	for i in range(t, 39):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'grey', linestyle=":", linewidth=1)
+		
+
+
+	# mark the runner at time t on its plan
+	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+
+	path = trace["other_plan"]
+
+	for i in range(0, t):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'blue', linestyle="--", linewidth=1, label="Other's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+		# else:
+		# 	ax.scatter( path[i][0],  path[i][1] , s = 30, facecolors='none', edgecolors='grey')
+	# mark the runner at time t on its plan
+	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
+
+	for i in range(t, 39):
+		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+			'grey', linestyle="--", linewidth=1, label="Other's Plan")
+		if i in trace["t_detected"]:
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	plt.figtext(0.92, 0.85, "Sampled Values", horizontalalignment='left', weight="bold") 
+	plt.figtext(0.92, 0.80, "A Start: " +str(trace["run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.75, "A Goal: " +str(trace["run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.70, "B Start: " +str(trace["other_run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.65, "B Goal: " +str(trace["other_run_goal"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.60, "time step: " +str(trace["t"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.55, "A detected B count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
+	close_plot(fig, ax, plot_name="PO_forward_runs/unconditioned/single_samples/run_and_find-"+str(int(time.time()))+".eps")
 
 	print "time:", trace["t"]
 	# print "other_run_start:", trace["other_run_start"]
@@ -637,7 +704,7 @@ def run_basic_partial_model(locs, poly_map, isovist):
 	print "run_start:", trace["run_start"]
 	print "run_goal:", trace["run_goal"]
 	print "score:", score
-	print "detected:", trace["detected"]
+	#print "detected:", trace["detected"]
 	#print "other_plan:", trace["other_plan"]
 
 
@@ -697,8 +764,8 @@ if __name__ == '__main__':
 
 	#-----------run basic partially observable model and plot----------
 	#for i in xrange(10):
-	run_basic_partial_model(locs, poly_map, isovist)
-
+	run_conditioned_basic_partial_model(locs, poly_map, isovist)
+	#run_unconditioned_basic_partial_model(locs, poly_map, isovist)
 	#-----------run basic PO model conditioned on other_path, start, goal, and t ---
 	#run_inference_PO_path_conditioned(locs, poly_map, isovist)
 
