@@ -131,41 +131,56 @@ class BasicRunnerPOM(object):
 		my_loc = my_noisy_plan[t]
 
 		#---------------- need to add RV of detection for each time step ----------
-		# detection_prob = 0.0
-		# for i in xrange(t):
-		# 	past_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
-
-		# just look at the future since we want future detection
-		detection_prob = .001
-		t_detected = -1
-		for i in xrange(5, 20):
+		t_detected = []
+		PATH_LIMIT = 24
+		for i in xrange(0, PATH_LIMIT):
 			cur_loc = scale_up(my_noisy_plan[i])
-			next_loc = scale_up(my_noisy_plan[i+1])
-			fv = direction(next_loc, cur_loc)
-
 			intersections = None
+			detection_prob = 0.001
 			# face the runner if within certain radius
 			if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
 				fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
 				intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
 			
-				# does the enforcer see me at time 't'
+				# does the agent see other at time 't'
 				other_loc = scale_up(other_noisy_plan[i])
 				will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
 				if will_other_be_seen:
 					detection_prob = 0.999
-					t_detected = i
-					Q.keep("intersections-t-"+str(i), intersections)
-					break
+					t_detected.append(i)
 
+			future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
+			
 			Q.keep("intersections-t-"+str(i), intersections)
+
+		# XXX --old
+		# just look at the future since we want future detection
+		# detection_prob = .001
+		# t_detected = -1
+		# for i in xrange(t, 24):
+		# 	cur_loc = scale_up(my_noisy_plan[i])
+		# 	next_loc = scale_up(my_noisy_plan[i+1])
+		# 	fv = direction(next_loc, cur_loc)
+
+		# 	intersections = None
+		# 	# face the runner if within certain radius
+		# 	if dist(my_noisy_plan[i], other_noisy_plan[i]) <= .4: #.35:
+		# 		fv = direction(scale_up(other_noisy_plan[i]), cur_loc)
+		# 		intersections = self.isovist.GetIsovistIntersections(cur_loc, fv)
+			
+		# 		# does the enforcer see me at time 't'
+		# 		other_loc = scale_up(other_noisy_plan[i])
+		# 		will_other_be_seen = self.isovist.FindIntruderAtPoint( other_loc, intersections )
+		# 		if will_other_be_seen:
+		# 			detection_prob = 0.999
+		# 			t_detected = i
+		# 			Q.keep("intersections-t-"+str(i), intersections)
+		# 			break
+
+		# 	Q.keep("intersections-t-"+str(i), intersections)
+		#future_detection = Q.flip( p=detection_prob, name="detected" )
+
 		Q.keep("t_detected", t_detected)
-
-		future_detection = Q.flip( p=detection_prob, name="detected" )
-			
-
-			
-
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("other_plan", other_noisy_plan)
 
