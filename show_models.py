@@ -569,6 +569,9 @@ def run_conditioned_basic_partial_model(locs, poly_map, isovist):
 	for i in xrange(t):
 		Q.condition("other_run_x_"+str(i), other_agent_path[i][0])
 		Q.condition("other_run_y_"+str(i), other_agent_path[i][1])
+		Q.condition("detected_t_"+str(i), False)
+	for i in xrange(t, 24):
+		Q.condition("detected_t_"+str(i), False)
 
 	score, trace = Q.run_model()
 
@@ -630,8 +633,8 @@ def run_conditioned_basic_partial_model(locs, poly_map, isovist):
 	plt.figtext(0.92, 0.55, "A detected B count: " +str(len(trace["t_detected"])), horizontalalignment='left') 
 	
 	plt.figtext(0.5, 0.01, "Log Score: " +str(score), horizontalalignment='center') 
-	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/single_samples/run_and_find-"+str(int(time.time()))+".eps")
-
+	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/single_samples/run_and_avoid-"+str(int(time.time()))+".eps")
+	print "score:", score
 
 def run_unconditioned_basic_partial_model(locs, poly_map, isovist):
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
