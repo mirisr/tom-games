@@ -554,7 +554,7 @@ def run_inference_PO_path_conditioned(locs, poly_map, isovist):
 
 
 
-	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned-1/OP_MH_hear_run_and_catch-5-64-"+str(int(time.time()))+".eps")
+	close_plot(fig, ax, plot_name="PO_forward_runs/conditioned/OP_MH_hear_run_and_catch-5-64-"+str(int(time.time()))+".eps")
 
 
 
