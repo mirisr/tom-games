@@ -489,11 +489,11 @@ def run_inference_PO(locs, poly_map, isovist):
 		Q.condition("other_run_y_"+str(i), other_agent_path[i][1])
 		Q.condition("detected_t_"+str(i), False)
 	for i in xrange(t, 24):
-		Q.condition("detected_t_"+str(i), True)
+		Q.condition("detected_t_"+str(i), False)
 
 	PS = 5
-	SP = 124
-	post_sample_traces = run_inference_MH(Q, post_samples=PS, samples=SP)
+	SP = 32
+	post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
 
 	fig, ax = setup_plot(poly_map, locs)
 
@@ -544,7 +544,7 @@ def run_inference_PO(locs, poly_map, isovist):
 			if i in trace["t_detected"]:
 				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 
-	close_plot(fig, ax, plot_name="PO_forward_runs/inference/MH_run_and_find-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps")
+	close_plot(fig, ax, plot_name="PO_forward_runs/inference/IS_run_and_avoid-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps")
 
 
 def run_conditioned_basic_partial_model(locs, poly_map, isovist):
