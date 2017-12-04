@@ -4,88 +4,64 @@ import random
 import numpy as np
 import copy
 from scipy.misc import logsumexp
-from multiprocessing import Pool
+#from multiprocessing import Pool
 
 
 
-# importance sampling using the score of trace
-def single_run_model(arg, **kwarg):
-	return ProgramTrace.run_model(*arg, **kwarg)
+# # importance sampling using the score of trace
+# def single_run_model(arg, **kwarg):
+# 	return ProgramTrace.run_model(*arg, **kwarg)
 	
 
-def single_run_model_sarg( x ):
-	if not hasattr( single_run_model_sarg, '__my_init' ):
-		single_run_model_sarg.__my_init = True # use function attributes as static variables
-		import os
-		np.random.seed( os.getpid() )
-	return single_run_model()
+# def single_run_model_sarg( x ):
+# 	if not hasattr( single_run_model_sarg, '__my_init' ):
+# 		single_run_model_sarg.__my_init = True # use function attributes as static variables
+# 		import os
+# 		np.random.seed( os.getpid() )
+# 	return single_run_model()
 
 
+# def mylocal_func( params ):
+# 	Q = new Q( params )
+# 	 return Q.run_model()
 
-def importance_sampling_par(Q, particles):
-	traces = []
-	scores = np.arange(particles)
+# def importance_sampling(Q, particles):
+# 	traces = []
+# 	scores = np.arange(particles)
 
-	# for i in xrange(particles):
-		# score, trace_vals = Q.run_model()
-		# traces.append(copy.deepcopy(trace_vals))
-		# scores[i] = score
-
-#   p = Pool( 12 )
-	p = Pool( 5 )
-    # we do all of this because Pool.map pickles its arguments, and you can't pickle a lambda...
-	params = ((),) * particles
-	#print "params:", params
-	#results = p.map( single_run_model_sarg, zip([Q]*particles, ((),) * particles) )
-
-	for tmp_retval in results:
-		scores.append( tmp_retval[0] )
-		traces.append( tmp_retval[1] )
-
-	print "scores:", scores
+# 	# for i in xrange(particles):
+# 		# score, trace_vals = Q.run_model()
+# 		# traces.append(copy.deepcopy(trace_vals))
+# 		# scores[i] = score
 
 	
-	# get weight for score
-	# weights = np.exp(scores - logsumexp(scores))
-
-	# # sample
-	# chosen_index = np.random.choice([i for i in range(particles)], p=weights)
-	# return traces[chosen_index]
-	return 0
-
-
-from multiprocessing import Pool 
-from functools import partial 
+# #   p = Pool( 12 )
+# 	p = Pool( 5 )
+#     # we do all of this because Pool.map pickles its arguments, and you can't pickle a lambda...
+# 	params = ((),) * particles
+# 	results = p.map( mylocal_func, params )
+# 	print results
 
 
-def _getattr_proxy_partialable(instance, name, arg): 
-    return getattr(instance, name)(arg) 
+# 	#print "params:", params
+# 	#results = p.map( single_run_model_sarg, zip([Q]*particles, ((),) * particles) )
 
-def getattr_proxy(instance, name): 
-    """ 
-    A version of getattr that returns a proxy function that can 
-    be pickled. Only function calls will work on the proxy. 
-    """ 
-    return partial(_getattr_proxy_partialable, instance, name) 
+# 	# for tmp_retval in results:
+# 	# 	scores.append( tmp_retval[0] )
+# 	# 	traces.append( tmp_retval[1] )
 
-import copy_reg 
-import multiprocessing 
-import new 
+# 	# print "scores:", scores
 
-def make_instancemethod(inst, methodname): 
-    return getattr(inst, methodname) 
+	
+# 	# get weight for score
+# 	# weights = np.exp(scores - logsumexp(scores))
 
-def pickle_instancemethod(method): 
-    return make_instancemethod, (method.im_self, method.im_func.__name__) 
+# 	# # sample
+# 	# chosen_index = np.random.choice([i for i in range(particles)], p=weights)
+# 	# return traces[chosen_index]
+# 	return 0
 
-# copy_reg.pickle( 
-#     types.MethodType, 
-#     lambda method: (getattr, (method.im_self, method.im_func.__name__)), 
-#     getattr 
-# ) 
 
-copy_reg.pickle( 
-    new.instancemethod, pickle_instancemethod, make_instancemethod) 
 
 
 # # importance sampling using the score of trace
