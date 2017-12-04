@@ -14,6 +14,7 @@ from inference_alg import importance_sampling, metroplis_hastings
 from program_trace import ProgramTrace
 from planner import * 
 from tqdm import tqdm
+import os
 #import seaborn
 
 def plot(poly_map, plot_name=None, locs=None):
@@ -335,7 +336,7 @@ def nested_most_probable_goal_location(Q, poly_map, locs, sim_id, path, start, t
 
 
 
-def plot_movements(a_path, b_path, sim_id, poly_map, locs, t, code=""):
+def plot_movements(a_path, b_path, sim_id, poly_map, locs, t, code="", directory="collab"):
 	fig, ax = setup_plot(poly_map, locs)
 	# PLOTTING MOVEMENTS
 	path = a_path
@@ -351,7 +352,7 @@ def plot_movements(a_path, b_path, sim_id, poly_map, locs, t, code=""):
 			'black', linestyle="--", linewidth=2, label="Bob")
 	# mark the runner at time t on its plan
 	ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
-	close_plot(fig, ax, "collab/" + sim_id + code + "-" +str(t)+".eps")
+	close_plot(fig, ax, directory + "/" + sim_id + code + "-" +str(t)+".eps")
 
 
 
@@ -545,6 +546,109 @@ def run_inference_PO(locs, poly_map, isovist):
 				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 
 	close_plot(fig, ax, plot_name="PO_forward_runs/unknown_inference/IS_run_and_avoid-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps")
+
+def get_most_detected_path_PO(Q, poly_map, locs, sim_id, other_true_path, character):
+	
+	PS = 5
+	SP = 32
+	post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
+
+	fig, ax = setup_plot(poly_map, locs)
+
+	detected_count = []
+	inferred_goal = []
+	for trace in post_sample_traces:
+		d_list = trace["t_detected"]
+		detected_count.append(len(d_list))
+
+		my_inferred_goal = trace["run_goal"]
+		inferred_goal.append(my_inferred_goal)
+		# draw agent's plan (past in orange and future in grey)
+		path = trace["my_plan"]
+		t = trace["t"]
+		for i in range(0, t):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+		# mark the runner at time t on its plan
+		ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+		path = trace["other_plan"]
+		for i in range(0, t):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'blue', linestyle="--", linewidth=1, label="Other's Plan")
+			if i in trace["t_detected"]:
+				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+		ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
+		for i in range(t, 39):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'grey', linestyle="--", linewidth=1, label="Other's Plan")
+			if i in trace["t_detected"]:
+				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	# show true path of other agent
+	for i in range(len(other_true_path)-1):
+			ax.plot( [other_true_path[i][0], other_true_path[i+1][0] ], [ other_true_path[i][1], other_true_path[i+1][1]], 
+				'red', linestyle="--", linewidth=1, alpha = 0.75)
+	ax.scatter( other_true_path[t][0],  other_true_path[t][1] , s = 95, facecolors='none', edgecolors='red')
+
+	close_plot(fig, ax, plot_name="PO_forward_runs/find_eachother/"+sim_id+"/finding-"+character+"-t-"+str(t)+".eps")
+
+	return inferred_goal[detected_count.index(max(detected_count))]
+
+def condition_PO_model(runner_model, start, other_start, t, path):
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", start)
+	Q.condition("other_run_start", other_start)
+	Q.condition("t", t) 
+	# condition on previous time steps
+	for prev_t in xrange(t):
+		Q.condition("run_x_"+str(prev_t), path[prev_t][0])
+		Q.condition("run_y_"+str(prev_t), path[prev_t][1])
+		Q.condition("detected_t_"+str(prev_t), False)
+	for i in xrange(t, 40):
+		Q.condition("detected_t_"+str(i), True)
+	return Q
+
+def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist):
+	x1,y1,x2,y2 = poly_map
+	sim_id = str(int(time.time()))
+
+	newpath = "/home/iris/Desktop/tom-games/PO_forward_runs/find_eachother/"+str(sim_id) 
+	if not os.path.exists(newpath):
+	    os.makedirs(newpath)
+
+	#Alice will start at some location
+	alice_start = 0
+	alice_path = [locs[alice_start]]
+
+	#Bob will start st some other location
+	bob_start = 9
+	bob_path = [locs[bob_start]]
+
+	# for each time step
+	for t in xrange(0, 40):
+		#Alice will conduct goal inference on observations of bob's location
+		Q = condition_PO_model(runner_model, alice_start, bob_start, t, alice_path)
+
+		inferred_bob_goal = get_most_detected_path_PO(Q, poly_map, locs, sim_id, 
+			bob_path, "B")
+
+		#Bob will conduct goal inference on observations of alice's location
+		inferred_alice_goal = get_most_detected_path_PO(Q, poly_map, locs, sim_id, 
+			alice_path, "A")
+
+		#Alice will move toward Bob's goal after planning
+		alice_plan = run_rrt_opt( np.atleast_2d(alice_path[-1]), 
+		np.atleast_2d(locs[inferred_bob_goal]), x1,y1,x2,y2 )
+		alice_path.append(alice_plan[1])
+
+		#Bob will move toward Alice's goal after planning
+		bob_plan = run_rrt_opt( np.atleast_2d(bob_path[-1]), 
+		np.atleast_2d(locs[inferred_alice_goal]), x1,y1,x2,y2 )
+		bob_path.append(bob_plan[1])
+
+		plot_movements(alice_path, bob_path, sim_id, poly_map, locs, t, code="PO-find_eachother", directory="PO_forward_runs/find_eachother/"+sim_id)
+
+
 
 
 def run_conditioned_basic_partial_model(locs, poly_map, isovist):
@@ -760,8 +864,13 @@ if __name__ == '__main__':
 	#for i in xrange(10):
 	#run_conditioned_basic_partial_model(locs, poly_map, isovist)
 	#run_unconditioned_basic_partial_model(locs, poly_map, isovist)
+
 	#-----------run basic PO model conditioned on other_path, start, goal, and t ---
-	run_inference_PO(locs, poly_map, isovist)
+	#run_inference_PO(locs, poly_map, isovist)
+
+	# -----------run basic partially observable model - SIMULATE FIND EACHOTHER ----
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	simulate_find_eachother_PO(runner_model, locs, poly_map, isovist)
 
 
 	# old -----------------------------

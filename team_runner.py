@@ -132,7 +132,7 @@ class BasicRunnerPOM(object):
 
 		#---------------- need to add RV of detection for each time step ----------
 		t_detected = []
-		PATH_LIMIT = 24
+		PATH_LIMIT = 40
 		for i in xrange(0, PATH_LIMIT):
 			cur_loc = scale_up(my_noisy_plan[i])
 			intersections = None
