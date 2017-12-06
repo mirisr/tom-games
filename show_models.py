@@ -617,11 +617,11 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist):
 	    os.makedirs(newpath)
 
 	#Alice will start at some location
-	alice_start = 0
+	alice_start = 1
 	alice_path = [locs[alice_start]]
 
 	#Bob will start st some other location
-	bob_start = 9
+	bob_start = 7
 	bob_path = [locs[bob_start]]
 
 	# for each time step
