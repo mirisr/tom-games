@@ -633,6 +633,8 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist):
 			bob_path, "B")
 
 		#Bob will conduct goal inference on observations of alice's location
+		Q = condition_PO_model(runner_model, bob_start, alice_start, t, bob_path)
+
 		inferred_alice_goal = get_most_detected_path_PO(Q, poly_map, locs, sim_id, 
 			alice_path, "A")
 
@@ -647,8 +649,6 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist):
 		bob_path.append(bob_plan[1])
 
 		plot_movements(alice_path, bob_path, sim_id, poly_map, locs, t, code="PO-find_eachother", directory="PO_forward_runs/find_eachother/"+sim_id)
-
-
 
 
 def run_conditioned_basic_partial_model(locs, poly_map, isovist):
