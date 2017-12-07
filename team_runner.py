@@ -165,7 +165,7 @@ class BasicRunnerPOM(object):
 		return post_traces
 
 class TOMRunnerPOM(object):
-	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None]):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1):
 		# field of view calculator
 		self.isovist = isovist
 		# possible start/goal locations
@@ -175,51 +175,12 @@ class TOMRunnerPOM(object):
 		self.seg_map = seg_map
 		rx1,ry1,rx2,ry2 = seg_map
 		self.nested_model = nested_model
-
+		self.PS = ps
+		self.SP = sp
 
 	# run the model inside this function
 	def run(self, Q):
 		self.run_tom_partial(Q)
-
-	# def tom_run_nested_inference(self, Q, path_noise=0.003):
-	# 	# represents the other agent
-	# 	rx1,ry1,rx2,ry2 = self.seg_map
-	# 	t = Q.choice( p=1.0/40*np.ones((1,40)), name="t" )
-
-	# 	start_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="co_run_start" )
-	# 	goal_i = Q.choice( p=1.0/self.cnt*np.ones((1,self.cnt)), name="co_run_goal" )
-	# 	start = np.atleast_2d( self.locs[start_i] )
-	# 	goal = np.atleast_2d( self.locs[goal_i] )
-
-	# 	# plan using the latent variables of start and goal
-	# 	my_plan = planner.run_rrt_opt( np.atleast_2d(start), 
-	# 	np.atleast_2d(goal), rx1,ry1,rx2,ry2 )
-	# 	my_loc = np.atleast_2d(my_plan[t])
-
-	# 	# add noise to the plan
-	# 	my_noisy_plan = [my_plan[0]]
-	# 	for i in xrange(1, len(my_plan)-1):#loc_t = np.random.multivariate_normal(my_plan[i], [[path_noise, 0], [0, path_noise]]) # name 't_i' i.e. t_1, t_2,...t_n
-	# 		loc_x = Q.randn( mu=my_plan[i][0], sigma=path_noise, name="co_run_x_"+str(i) )
-	# 		loc_y = Q.randn( mu=my_plan[i][1], sigma=path_noise, name="co_run_y_"+str(i) )
-	# 		loc_t = [loc_x, loc_y]
-	# 		my_noisy_plan.append(loc_t)
-	# 	my_noisy_plan.append(my_plan[-1])
-
-	# 	post_sample_traces = self.collaborative_nested_inference(Q)
-
-	# 	# get most probable goal
-	# 	partners_goal = self.get_most_probable_goal(post_sample_traces, "run_goal")
-		
-	# 	same_goal = 0
-	# 	if goal_i == partners_goal:
-	# 		same_goal = 1
-	# 	same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
-
-	# 	runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) 
-
-	# 	Q.keep("co_runner_plan", my_noisy_plan)
-	# 	Q.keep("partner_goal", partners_goal)
-	# 	Q.keep("nested_post_sample_traces", post_sample_traces)
 
 
 	def run_tom_partial(self, Q, path_noise=0.003):
@@ -247,7 +208,8 @@ class TOMRunnerPOM(object):
 		my_loc = my_noisy_plan[t]
 
 		#---------------- do inference --------------------------------------------
-		other_inferred_goal = self.collaborative_nested_inference(Q)
+		post_sample_traces, other_inferred_trace = self.collaborative_nested_inference(Q)
+		other_noisy_plan = other_inferred_trace["my_plan"]
 
 		#---------------- need to add RV of detection for each time step ----------
 		t_detected = []
@@ -275,28 +237,31 @@ class TOMRunnerPOM(object):
 		Q.keep("t_detected", t_detected)
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("other_plan", other_noisy_plan)
+		Q.keep("other_run_start", other_inferred_trace["run_start"])
+		Q.keep("other_run_goal", other_inferred_trace["run_goal"])
+		Q.keep("nested_post_samples", post_sample_traces)
 
 
 	def collaborative_nested_inference(self, Q):
-		t = Q.get_obs("t")
+		t = Q.fetch("t")
 		q = ProgramTrace(self.nested_model)
 		q.condition("other_run_start", Q.fetch("init_run_start"))
-		q.condition("t", Q.get_obs("t")) 
-		# condition on previous time steps
-		
+		q.condition("t", Q.fetch("t")) 
+		q.condition("run_start", Q.get_obs("other_run_start"))
+		for i in xrange(24):
+			q.condition("detected_t_"+str(i), Q.get_obs("detected_t_"+str(i)))
+
 		for prev_t in xrange(t):
-			q.condition("other_run_x_"+str(prev_t), Q.get_obs("init_run_x_"+str(prev_t)))
-			q.condition("other_run_y_"+str(prev_t), Q.get_obs("init_run_y_"+str(prev_t)))
+			q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(prev_t)))
+			q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(prev_t)))
 
-		# cannot just return the goal, I need the entire path
-		# or return the entire trace from the posterior
-		return self.get_goal_for_most_detected_path_PO(q)
+		trace =  self.get_trace_for_most_detected_path_PO(q)
+
+		return trace
 
 
-	def get_goal_for_most_detected_path_PO(Q):
-		PS = 5
-		SP = 32
-		post_sample_traces = self.run_inference(Q, post_samples=PS, samples=SP)
+	def get_trace_for_most_detected_path_PO(self, Q):
+		post_sample_traces = self.run_inference(Q, post_samples=self.PS, samples=self.SP)
 
 		detected_count = []
 		inferred_goal = []
@@ -306,7 +271,8 @@ class TOMRunnerPOM(object):
 
 			my_inferred_goal = trace["run_goal"]
 			inferred_goal.append(my_inferred_goal)
-		return post_sample_traces[detected_count.index(max(detected_count))]
+
+		return post_sample_traces, post_sample_traces[detected_count.index(max(detected_count))]
 
 
 	def run_inference(self, trace, post_samples=16, samples=32):
