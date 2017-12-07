@@ -597,6 +597,7 @@ def get_most_detected_goal_PO(Q, poly_map, locs, sim_id, other_true_path, charac
 
 	return inferred_goal[detected_count.index(max(detected_count))]
 
+#condition_PO_model(runner_model, alice_start, bob_start, t, alice_path)
 def condition_PO_model(runner_model, start, other_start, t, path):
 	Q = ProgramTrace(runner_model)
 	Q.condition("run_start", start)
@@ -611,7 +612,7 @@ def condition_PO_model(runner_model, start, other_start, t, path):
 		Q.condition("detected_t_"+str(i), True)
 	return Q
 
-def condition_TOM_PO_model(runner_model, start, other_start, t, path):
+def condition_TOM_PO_model(runner_model, start, other_start, t, path, past_obs):
 	Q = ProgramTrace(runner_model)
 	Q.condition("init_run_start", 2)
 	Q.set_obs("other_run_start", 5)
@@ -619,13 +620,20 @@ def condition_TOM_PO_model(runner_model, start, other_start, t, path):
 	for i in xrange(t):
 		Q.condition("init_run_x_"+str(i), path[i][0])
 		Q.condition("init_run_y_"+str(i), path[i][1])
-		Q.condition("detected_t_"+str(i), False)
-		Q.set_obs("detected_t_"+str(i), False)
+		Q.condition("detected_t_"+str(i), past_obs[t])
+		Q.set_obs("detected_t_"+str(i), past_obs[t])
 	for i in xrange(t, 24):
 		Q.condition("detected_t_"+str(i), True)
 		Q.set_obs("detected_t_"+str(i), True)
 	return Q
 
+
+#
+# Realize that I didn't change the condition if they do happen to see eachother
+# Need to keep track of whether they saw each other or not
+# ...
+#
+#
 def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=1, SP=1):
 	x1,y1,x2,y2 = poly_map
 	sim_id = str(int(time.time()))
@@ -646,22 +654,29 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 	bob_start = 7
 	bob_path = [locs[bob_start]]
 
+	alices_detections = {}
+	bobs_detections = {}
+
 	# for each time step
 	for t in xrange(0, 26):
 		#Alice will conduct goal inference on observations of bob's location
 		if directory == "tom_find_eachother":
-			Q = condition_TOM_PO_model(runner_model, alice_start, bob_start, t, alice_path)
+			Q = condition_TOM_PO_model(runner_model, alice_start, bob_start, 
+				t, alice_path, alices_detections)
 		else:	
-			Q = condition_PO_model(runner_model, alice_start, bob_start, t, alice_path)
+			Q = condition_PO_model(runner_model, alice_start, bob_start, 
+				t, alice_path, alices_detections)
 
 		inferred_bob_goal = get_most_detected_goal_PO(Q, poly_map, locs, sim_id, 
 			bob_path, "B", directory=directory, PS=PS, SP=SP)
 
 		#Bob will conduct goal inference on observations of alice's location
 		if directory == "tom_find_eachother":
-			Q = condition_TOM_PO_model(runner_model, bob_start, alice_start, t, bob_path)
+			Q = condition_TOM_PO_model(runner_model, bob_start, alice_start, 
+				t, bob_path, bobs_detections)
 		else:
-			Q = condition_PO_model(runner_model, bob_start, alice_start, t, bob_path)
+			Q = condition_PO_model(runner_model, bob_start, alice_start, 
+				t, bob_path, bobs_detections)
 
 		inferred_alice_goal = get_most_detected_goal_PO(Q, poly_map, locs, sim_id, 
 			alice_path, "A", directory=directory, PS=PS, SP=SP)
@@ -676,7 +691,33 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 		np.atleast_2d(locs[inferred_alice_goal]), x1,y1,x2,y2 )
 		bob_path.append(bob_plan[1])
 
+		
+		bobs_step = bob_path[-1]
+		alices_step = alice_path[-1]
+
+		alice_detected_bob = was_other_detected(agent_loc, other_agent_loc, isovist)
+		bob_detected_alice = was_other_detected(other_agent_loc, agent_loc, isovist)
+
+		alice_detections[t] = alice_detected_bob
+		bob_detections[t] = bob_detected_alice
+
+		# need to store the locations that they were located so they can condition on them
+
+
+
+
 		plot_movements(alice_path, bob_path, sim_id, poly_map, locs, t, code="PO-find_eachother", directory="PO_forward_runs/"+directory+"/"+sim_id)
+
+def was_other_detected(agent_loc, other_agent_loc, isovist):
+	#Check if they saw one another
+	loc = scale_up(agent_loc)
+	other_loc = scale_up(other_agent_loc)
+
+	fv = direction(other_loc, loc)
+	intersections = self.isovist.GetIsovistIntersections(loc, fv)
+	is_other_seen = self.isovist.FindIntruderAtPoint(other_loc, intersections)
+	return is_other_seen
+
 
 
 def run_conditioned_basic_partial_model(locs, poly_map, isovist):
@@ -1001,7 +1042,8 @@ if __name__ == '__main__':
 		nested_model=runner_model, ps=5, sp=32)
 	#-- run single conditioned sample ---//
 	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist)
-	simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="tom_find_eachother", PS=5, SP=32)
+	simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
+		directory="tom_find_eachother", PS=5, SP=32)
 
 
 
