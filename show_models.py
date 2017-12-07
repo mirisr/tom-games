@@ -598,7 +598,7 @@ def get_most_detected_goal_PO(Q, poly_map, locs, sim_id, other_true_path, charac
 	return inferred_goal[detected_count.index(max(detected_count))]
 
 #condition_PO_model(runner_model, alice_start, bob_start, t, alice_path)
-def condition_PO_model(runner_model, start, other_start, t, path):
+def condition_PO_model(runner_model, start, other_start, t, path, past_obs):
 	Q = ProgramTrace(runner_model)
 	Q.condition("run_start", start)
 	Q.condition("other_run_start", other_start)
@@ -607,7 +607,7 @@ def condition_PO_model(runner_model, start, other_start, t, path):
 	for prev_t in xrange(t):
 		Q.condition("run_x_"+str(prev_t), path[prev_t][0])
 		Q.condition("run_y_"+str(prev_t), path[prev_t][1])
-		Q.condition("detected_t_"+str(prev_t), False)
+		Q.condition("detected_t_"+str(i), past_obs[t])
 	for i in xrange(t, 40):
 		Q.condition("detected_t_"+str(i), True)
 	return Q
