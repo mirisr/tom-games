@@ -165,7 +165,7 @@ class BasicRunnerPOM(object):
 		return post_traces
 
 class TOMRunnerPOM(object):
-	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None):
+	def __init__(self, isovist=None, locs=None, seg_map=[None,None,None,None], nested_model=None, ps=1, sp=1):
 		# field of view calculator
 		self.isovist = isovist
 		# possible start/goal locations
@@ -175,6 +175,8 @@ class TOMRunnerPOM(object):
 		self.seg_map = seg_map
 		rx1,ry1,rx2,ry2 = seg_map
 		self.nested_model = nested_model
+		self.PS = ps
+		self.SP = sp
 
 	# run the model inside this function
 	def run(self, Q):
@@ -246,8 +248,9 @@ class TOMRunnerPOM(object):
 		q.condition("other_run_start", Q.fetch("init_run_start"))
 		q.condition("t", Q.fetch("t")) 
 		q.condition("run_start", Q.get_obs("other_run_start"))
-		# condition on previous time steps
-		
+		for i in xrange(24):
+			q.condition("detected_t_"+str(i), Q.get_obs("detected_t_"+str(i)))
+
 		for prev_t in xrange(t):
 			q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(prev_t)))
 			q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(prev_t)))
@@ -258,12 +261,7 @@ class TOMRunnerPOM(object):
 
 
 	def get_trace_for_most_detected_path_PO(self, Q):
-		#PS = 5
-		#SP = 32
-
-		PS = 1
-		SP = 1
-		post_sample_traces = self.run_inference(Q, post_samples=PS, samples=SP)
+		post_sample_traces = self.run_inference(Q, post_samples=self.PS, samples=self.SP)
 
 		detected_count = []
 		inferred_goal = []
