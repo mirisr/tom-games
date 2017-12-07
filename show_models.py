@@ -695,8 +695,8 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 		bobs_step = bob_path[-1]
 		alices_step = alice_path[-1]
 
-		alice_detected_bob = was_other_detected(agent_loc, other_agent_loc, isovist)
-		bob_detected_alice = was_other_detected(other_agent_loc, agent_loc, isovist)
+		alice_detected_bob = was_other_detected(alices_step, bobs_step, isovist)
+		bob_detected_alice = was_other_detected(bobs_step, alices_step, isovist)
 
 		alice_detections[t] = alice_detected_bob
 		bob_detections[t] = bob_detected_alice
@@ -714,8 +714,8 @@ def was_other_detected(agent_loc, other_agent_loc, isovist):
 	other_loc = scale_up(other_agent_loc)
 
 	fv = direction(other_loc, loc)
-	intersections = self.isovist.GetIsovistIntersections(loc, fv)
-	is_other_seen = self.isovist.FindIntruderAtPoint(other_loc, intersections)
+	intersections = isovist.GetIsovistIntersections(loc, fv)
+	is_other_seen = isovist.FindIntruderAtPoint(other_loc, intersections)
 	return is_other_seen
 
 
@@ -1039,11 +1039,11 @@ if __name__ == '__main__':
 	#-----------run TOM partially observable model ------
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
 	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-		nested_model=runner_model, ps=5, sp=32)
+		nested_model=runner_model, ps=3, sp=16)
 	#-- run single conditioned sample ---//
 	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist)
 	simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
-		directory="tom_find_eachother", PS=5, SP=32)
+		directory="tom_find_eachother", PS=3, SP=16)
 
 
 
