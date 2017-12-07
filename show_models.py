@@ -647,7 +647,7 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 	bob_path = [locs[bob_start]]
 
 	# for each time step
-	for t in xrange(0, 36):
+	for t in xrange(0, 26):
 		#Alice will conduct goal inference on observations of bob's location
 		if directory == "tom_find_eachother":
 			Q = condition_TOM_PO_model(runner_model, alice_start, bob_start, t, alice_path)
