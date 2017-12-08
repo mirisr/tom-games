@@ -612,7 +612,8 @@ def condition_PO_model(runner_model, start, other_start, t, path, past_obs, dete
 		Q.condition("run_y_"+str(prev_t), path[prev_t][1])
 		Q.condition("detected_t_"+str(prev_t), past_obs[prev_t])
 		if past_obs[prev_t] == True:
-			Q.condition("other_run_x_"+str(prev_t), detection_locs_of_other[prev_t])
+			Q.condition("other_run_x_"+str(prev_t), detection_locs_of_other[prev_t][0])
+			Q.condition("other_run_y_"+str(prev_t), detection_locs_of_other[prev_t][1])
 	for i in xrange(t, 40):
 		Q.condition("detected_t_"+str(i), True)
 	return Q
@@ -1059,15 +1060,15 @@ if __name__ == '__main__':
 	#run_inference_PO(locs, poly_map, isovist)
 
 	# -----------run basic partially observable model - SIMULATE FIND EACHOTHER ----
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=1, SP=1)
+	#runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	#simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=1, SP=1)
 
 	#-----------run TOM partially observable model ------
-	#runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	#tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	# 	nested_model=runner_model, ps=3, sp=16)
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
+	 	nested_model=runner_model, ps=3, sp=16)
 	# #-- run single conditioned sample ---//
-	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
+	run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
 
 	# simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
 	# 	directory="tom_find_eachother", PS=3, SP=6)
