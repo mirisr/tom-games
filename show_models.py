@@ -564,7 +564,7 @@ def get_most_detected_goal_PO(Q, poly_map, locs, sim_id, other_true_path, charac
 		d_list = trace["t_detected"]
 		detected_count.append(len(d_list))
 
-		my_inferred_goal = trace["run_goal"]
+		my_inferred_goal = trace["init_run_goal"]
 		inferred_goal.append(my_inferred_goal)
 		# draw agent's plan (past in orange and future in grey)
 		path = trace["my_plan"]
@@ -698,8 +698,8 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 		alice_detected_bob = was_other_detected(alices_step, bobs_step, isovist)
 		bob_detected_alice = was_other_detected(bobs_step, alices_step, isovist)
 
-		alice_detections[t] = alice_detected_bob
-		bob_detections[t] = bob_detected_alice
+		alices_detections[t] = alice_detected_bob
+		bobs_detections[t] = bob_detected_alice
 
 		# need to store the locations that they were located so they can condition on them
 
