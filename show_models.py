@@ -607,7 +607,7 @@ def condition_PO_model(runner_model, start, other_start, t, path, past_obs):
 	for prev_t in xrange(t):
 		Q.condition("run_x_"+str(prev_t), path[prev_t][0])
 		Q.condition("run_y_"+str(prev_t), path[prev_t][1])
-		Q.condition("detected_t_"+str(i), past_obs[t])
+		Q.condition("detected_t_"+str(prev_t), past_obs[prev_t])
 	for i in xrange(t, 40):
 		Q.condition("detected_t_"+str(i), True)
 	return Q
@@ -620,8 +620,8 @@ def condition_TOM_PO_model(runner_model, start, other_start, t, path, past_obs):
 	for i in xrange(t):
 		Q.condition("init_run_x_"+str(i), path[i][0])
 		Q.condition("init_run_y_"+str(i), path[i][1])
-		Q.condition("detected_t_"+str(i), past_obs[t])
-		Q.set_obs("detected_t_"+str(i), past_obs[t])
+		Q.condition("detected_t_"+str(i), past_obs[i])
+		Q.set_obs("detected_t_"+str(i), past_obs[i])
 	for i in xrange(t, 24):
 		Q.condition("detected_t_"+str(i), True)
 		Q.set_obs("detected_t_"+str(i), True)
@@ -1043,7 +1043,7 @@ if __name__ == '__main__':
 	#-- run single conditioned sample ---//
 	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist)
 	simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
-		directory="tom_find_eachother", PS=3, SP=16)
+		directory="tom_find_eachother", PS=3, SP=6)
 
 
 
