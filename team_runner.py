@@ -234,6 +234,7 @@ class TOMRunnerPOM(object):
 			
 			Q.keep("intersections-t-"+str(i), intersections)
 
+		print t_detected
 		Q.keep("t_detected", t_detected)
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("other_plan", other_noisy_plan)
@@ -250,6 +251,12 @@ class TOMRunnerPOM(object):
 		q.condition("run_start", Q.get_obs("other_run_start"))
 		for i in xrange(24):
 			q.condition("detected_t_"+str(i), Q.get_obs("detected_t_"+str(i)))
+
+			#condition on observations from other agent of me
+			if (Q.get_obs("detected_t_"+str(i)) == True):
+				if (i < t):
+					q.condition("run_x_"+ str(i), Q.get_obs("other_x_"+str(i)))
+					q.condition("run_y_"+ str(i), Q.get_obs("other_y_"+str(i)))
 
 		for prev_t in xrange(t):
 			q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(prev_t)))
