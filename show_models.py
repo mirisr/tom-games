@@ -618,6 +618,8 @@ def condition_PO_model(runner_model, start, other_start, t, path, past_obs, dete
 		Q.condition("detected_t_"+str(i), True)
 	return Q
 
+# Q.set_obs("other_x_"+str(7), other_plan[7][0])
+# Q.set_obs("other_y_"+str(7), other_plan[7][1])
 def condition_TOM_PO_model(runner_model, start, other_start, t, path, past_obs, detection_locs_of_other):
 	Q = ProgramTrace(runner_model)
 	Q.condition("init_run_start", 2)
@@ -628,6 +630,9 @@ def condition_TOM_PO_model(runner_model, start, other_start, t, path, past_obs, 
 		Q.condition("init_run_y_"+str(i), path[i][1])
 		Q.condition("detected_t_"+str(i), past_obs[i])
 		Q.set_obs("detected_t_"+str(i), past_obs[i])
+		if past_obs[i] == True:
+			Q.set_obs("other_x_"+str(i), detection_locs_of_other[i][0])
+			Q.set_obs("other_y_"+str(i), detection_locs_of_other[i][1])
 	for i in xrange(t, 24):
 		Q.condition("detected_t_"+str(i), True)
 		Q.set_obs("detected_t_"+str(i), True)
@@ -943,9 +948,9 @@ def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=
 		path = nested_trace["my_plan"]
 		for i in range(t-1, 39):
 			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
-				'purple', linestyle="-", linewidth=1, label="Other's Plan", alpha=0.2)
+				'red', linestyle="-", linewidth=1, label="Other's Plan", alpha=0.2)
 			if i in trace["t_detected"]:
-				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='purple')
+				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 
 	path = trace["my_plan"]
 	t = trace["t"]
@@ -976,7 +981,7 @@ def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=
 		ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
 			'blue', linestyle="--", linewidth=1, label="Other's Plan")
 		if i in trace["t_detected"]:
-			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='purple')
+			ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
 
 	
 
@@ -1068,10 +1073,10 @@ if __name__ == '__main__':
 	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
 	 	nested_model=runner_model, ps=3, sp=16)
 	# #-- run single conditioned sample ---//
-	run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
+	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
 
-	# simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
-	# 	directory="tom_find_eachother", PS=3, SP=6)
+	simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
+		directory="tom_find_eachother", PS=3, SP=16)
 
 
 
