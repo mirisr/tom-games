@@ -151,6 +151,13 @@ class BasicRunnerPOM(object):
 			
 			Q.keep("intersections-t-"+str(i), intersections)
 
+		same_goal = 0
+		if goal_i == o_goal_i:
+			same_goal = 1
+		same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
+
+		runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) 
+
 		Q.keep("t_detected", t_detected)
 		Q.keep("my_plan", my_noisy_plan)
 		Q.keep("other_plan", other_noisy_plan)
@@ -233,6 +240,13 @@ class TOMRunnerPOM(object):
 			future_detection = Q.flip( p=detection_prob, name="detected_t_"+str(i) )
 			
 			Q.keep("intersections-t-"+str(i), intersections)
+
+		same_goal = 0
+		if goal_i == other_inferred_trace["run_goal"]:
+			same_goal = 1
+		same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
+
+		runners_same_goal = Q.flip( p=same_goal_prob, name="same_goal" ) 
 
 		print t_detected
 		Q.keep("t_detected", t_detected)
