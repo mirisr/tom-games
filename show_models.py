@@ -35,11 +35,14 @@ def plot(poly_map, plot_name=None, locs=None):
 		ax.plot( [ x1[i,0] * scale, x2[i,0] * scale ], [ y1[i,0] * scale, y2[i,0] * scale], 'black', linewidth=1 )
 
 
-	add_locations = False
+	add_locations = True
 	if add_locations:
 		for i in xrange(len(locs)):
 			ax.scatter( locs[i][0],  locs[i][1] , color="Green", s = 70, marker='+', linestyle='-')
 			ax.scatter( locs[i][0],  locs[i][1] , s = 95, facecolors='none', edgecolors='g')
+			if i == 5:
+				ax.scatter( locs[i][0],  locs[i][1] , color="Red", s = 70, marker='+', linestyle='-')
+				ax.scatter( locs[i][0],  locs[i][1] , s = 95, facecolors='none', edgecolors='red')
 
 	
 	if plot_name is None:
@@ -1143,29 +1146,36 @@ def run_conditioned_tom_partial_model(runner_model, locs, poly_map, isovist, PS=
 
 if __name__ == '__main__':
 	#plot("test.eps")
+	
+	locs = None
+	poly_map = None
+	isovist = None
 
+	map_info = 1
 
 	# ------------- setup for map 2 ---------------
-	# locs_map_2 = [[0.4, 0.062] ,
-	# 		[0.964, 0.064] ,
-	# 		[0.442, 0.37] ,
-	# 		[0.1, 0.95] ,
-	# 		[0.946, 0.90] ,
-	# 		[0.066, 0.538]]
-	# locs = locs_map_2
-	# poly_map  = polygons_to_segments( load_polygons( "./map_2.txt" ) )
-	# isovist = i.Isovist( load_isovist_map( fn="./map_2.txt" ) )
+	if map_info == 1:
+		locs_map_1 = [[0.4, 0.062] ,
+				[0.964, 0.064] ,
+				[0.442, 0.37] ,
+				[0.1, 0.95] ,
+				[0.946, 0.90] ,
+				[0.066, 0.538]]
+		locs = locs_map_1
+		poly_map  = polygons_to_segments( load_polygons( "./map_2.txt" ) )
+		isovist = i.Isovist( load_isovist_map( fn="./map_2.txt" ) )
 
 	# ------------- setup for map "paths" large bremen map ---------------
-	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
-		[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
-		[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
-		[ 0.432, 1-0.098 ] ]
-	poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
-	isovist = i.Isovist( load_isovist_map() )
+	if map_info == 2:
+		locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
+			[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
+			[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
+			[ 0.432, 1-0.098 ] ]
+		poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
+		isovist = i.Isovist( load_isovist_map() )
 
 	#plots the map and the locations if said so in the function
-	#plot(seg_map, plot_name="large_map_blank.eps", locs=locs)
+	plot(poly_map, plot_name="large_map_blank.eps", locs=locs)
 	
 
 
@@ -1207,8 +1217,8 @@ if __name__ == '__main__':
 	#run_inference_PO(locs, poly_map, isovist)
 
 	# -----------run basic partially observable model - SIMULATE FIND EACHOTHER ----
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=5, SP=32)
+	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	# simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=5, SP=32)
 
 	#-----------run TOM partially observable model ------
 	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
