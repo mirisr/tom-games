@@ -739,11 +739,36 @@ def get_others_goal_at_most_detected_PO(Q, poly_map, locs, sim_id, other_true_pa
 # Q = condition_PO_model(runner_model, alice_start, bob_start, 
 # 				t, alice_path, alices_detections, alices_detection_locs_of_bob)
 
-def condition_PO_model(runner_model, start, other_start, t, path, past_obs, detection_locs_of_other):
+def reverse_condition_PO_model(runner_model, start, other_start, t, path, past_obs, detection_locs_of_other, FULL=False):
 	Q = ProgramTrace(runner_model)
 	Q.condition("run_start", start)
 	Q.condition("other_run_start", other_start)
 	Q.condition("t", t) 
+	# condition on previous time steps
+	for prev_t in xrange(t):
+		if prev_t == (t-1):
+			Q.condition("other_run_x_"+str(prev_t), path[prev_t][0])
+			Q.condition("other_run_y_"+str(prev_t), path[prev_t][1])
+		Q.condition("detected_t_"+str(prev_t), past_obs[prev_t])
+		if past_obs[prev_t] == True:
+			Q.condition("run_x_"+str(prev_t), detection_locs_of_other[prev_t][0])
+			Q.condition("run_y_"+str(prev_t), detection_locs_of_other[prev_t][1])
+		elif FULL:
+			Q.condition("run_x_"+str(prev_t), detection_locs_of_other[prev_t][0])
+			Q.condition("run_y_"+str(prev_t), detection_locs_of_other[prev_t][1])
+
+	for i in xrange(t, 40):
+		Q.condition("detected_t_"+str(i), True)
+	return Q
+
+
+
+def condition_PO_model(runner_model, start, other_start, t, path, past_obs, detection_locs_of_other, FULL=False):
+	Q = ProgramTrace(runner_model)
+	Q.condition("run_start", start)
+	Q.condition("other_run_start", other_start)
+	Q.condition("t", t)
+	Q.condition("same_goal", True)
 	# condition on previous time steps
 	for prev_t in xrange(t):
 		if prev_t == (t-1):
@@ -753,6 +778,10 @@ def condition_PO_model(runner_model, start, other_start, t, path, past_obs, dete
 		if past_obs[prev_t] == True:
 			Q.condition("other_run_x_"+str(prev_t), detection_locs_of_other[prev_t][0])
 			Q.condition("other_run_y_"+str(prev_t), detection_locs_of_other[prev_t][1])
+		elif FULL:
+			Q.condition("other_run_x_"+str(prev_t), detection_locs_of_other[prev_t][0])
+			Q.condition("other_run_y_"+str(prev_t), detection_locs_of_other[prev_t][1])
+
 	for i in xrange(t, 40):
 		Q.condition("detected_t_"+str(i), True)
 	return Q
@@ -764,6 +793,7 @@ def condition_TOM_PO_model(runner_model, start, other_start, t, path, past_obs, 
 	Q.condition("init_run_start", 2)
 	Q.set_obs("other_run_start", 5)
 	Q.condition("t", t)
+	Q.condition("same_goal", True)
 	for i in xrange(t):
 		if i == (t-1):
 			Q.condition("init_run_x_"+str(i), path[i][0])
@@ -798,11 +828,11 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 	    os.makedirs(newpath)
 
 	#Alice will start at some location
-	alice_start = 8
+	alice_start = 0
 	alice_path = [locs[alice_start]]
 
 	#Bob will start st some other location
-	bob_start = 6
+	bob_start = 9
 	bob_path = [locs[bob_start]]
 
 	alices_detections = {}
@@ -812,7 +842,7 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 	alices_detection_locs_of_bob = {}
 	bobs_detection_locs_of_alice = {}
 
-
+	FULL = False
 	# for each time step
 	for t in xrange(0, 26):
 		#Alice will conduct goal inference on observations of bob's location
@@ -821,7 +851,7 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 				t, alice_path, alices_detections, alices_detection_locs_of_bob)
 		else:	
 			Q = condition_PO_model(runner_model, alice_start, bob_start, 
-				t, alice_path, alices_detections, alices_detection_locs_of_bob)
+				t, alice_path, alices_detections, alices_detection_locs_of_bob, FULL=FULL)
 
 		#get_most_detected_goal_PO
 		inferred_bob_goal = get_most_probable_goal_location(Q, poly_map, locs, sim_id, 
@@ -833,7 +863,7 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 				t, bob_path, bobs_detections, bobs_detection_locs_of_alice)
 		else:
 			Q = condition_PO_model(runner_model, bob_start, alice_start, 
-				t, bob_path, bobs_detections, bobs_detection_locs_of_alice)
+				t, bob_path, bobs_detections, bobs_detection_locs_of_alice, FULL=FULL)
 
 		#get_most_detected_goal_PO
 		inferred_alice_goal = get_most_probable_goal_location(Q, poly_map, locs, sim_id, 
@@ -1151,7 +1181,7 @@ if __name__ == '__main__':
 	poly_map = None
 	isovist = None
 
-	map_info = 1
+	map_info = 2
 
 	# ------------- setup for map 2 ---------------
 	if map_info == 1:
@@ -1175,7 +1205,7 @@ if __name__ == '__main__':
 		isovist = i.Isovist( load_isovist_map() )
 
 	#plots the map and the locations if said so in the function
-	#plot(poly_map, plot_name="large_map_blank.eps", locs=locs)
+	plot(poly_map, plot_name="large_map_blank.eps", locs=locs)
 	
 
 
@@ -1218,7 +1248,7 @@ if __name__ == '__main__':
 
 	# -----------run basic partially observable model - SIMULATE FIND EACHOTHER ----
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=5, SP=32)
+	simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=3, SP=32)
 
 	#-----------run TOM partially observable model ------
 	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
