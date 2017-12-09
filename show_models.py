@@ -81,6 +81,36 @@ def close_plot(fig, ax, plot_name=None):
 	#plt.show()
 	fig.savefig(plot_name, bbox_inches='tight')
 
+def run_basic_forward(runner_model, poly_map, locs):
+
+	fig, ax = setup_plot(poly_map, locs)
+
+	for samples in xrange(100):
+		Q = ProgramTrace(runner_model)
+		Q.condition("run_start", 2)
+		Q.condition("run_goal", 4)
+		Q.condition("t", 8)
+		score, trace = Q.run_model()
+
+		path = trace["runner_plan"]
+
+		t = trace["t"]
+		for i in range( 0, len(path)-1):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'black', linestyle=":", linewidth=1)
+			#ax.scatter( path[i][0],  path[i][1] , s = 70, facecolors='none', edgecolors='grey')
+
+		ax.scatter( path[t][0],  path[t][1] , s = 70, facecolors='none', edgecolors='red')
+
+	plt.figtext(0.92, 0.85, "Values", horizontalalignment='left', weight="bold") 
+	plt.figtext(0.92, 0.80, "Start: " +str(trace["run_start"]), horizontalalignment='left') 
+	plt.figtext(0.92, 0.75, "Goal: " +str(trace["run_goal"]), horizontalalignment='left')
+	plt.figtext(0.92, 0.70, "time step: " +str(trace["t"]), horizontalalignment='left') 
+
+
+	close_plot(fig, ax, plot_name=str(int(time.time()))+"-basic.eps")
+
+
 def plot_runner(poly_map, trace, locs=None):
 	fig, ax = setup_plot(poly_map, locs)
 
@@ -1058,23 +1088,23 @@ if __name__ == '__main__':
 
 
 	# ------------- setup for map 2 ---------------
-	# locs_map_2 = [[0.4, 0.062] ,
-	# 		[0.964, 0.064] ,
-	# 		[0.442, 0.37] ,
-	# 		[0.1, 0.95] ,
-	# 		[0.946, 0.90] ,
-	# 		[0.066, 0.538]]
-	# locs = locs_map_2
-	# poly_map  = polygons_to_segments( load_polygons( "./map_2.txt" ) )
-	# isovist = i.Isovist( load_isovist_map( fn="./map_2.txt" ) )
+	locs_map_2 = [[0.4, 0.062] ,
+			[0.964, 0.064] ,
+			[0.442, 0.37] ,
+			[0.1, 0.95] ,
+			[0.946, 0.90] ,
+			[0.066, 0.538]]
+	locs = locs_map_2
+	poly_map  = polygons_to_segments( load_polygons( "./map_2.txt" ) )
+	isovist = i.Isovist( load_isovist_map( fn="./map_2.txt" ) )
 
 	# ------------- setup for map "paths" large bremen map ---------------
-	locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
-		[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
-		[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
-		[ 0.432, 1-0.098 ] ]
-	poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
-	isovist = i.Isovist( load_isovist_map() )
+	# locs = [[ 0.100, 1-0.900 ],[ 0.566, 1-0.854 ],[ 0.761, 1-0.665 ],
+	# 	[ 0.523, 1-0.604 ],[ 0.241, 1-0.660 ],[ 0.425, 1-0.591 ],
+	# 	[ 0.303, 1-0.429 ],[ 0.815, 1-0.402 ],[ 0.675, 1-0.075 ],
+	# 	[ 0.432, 1-0.098 ] ]
+	# poly_map = polygons_to_segments( load_polygons( "./paths.txt" ) )
+	# isovist = i.Isovist( load_isovist_map() )
 
 	#plots the map and the locations if said so in the function
 	#plot(seg_map, plot_name="large_map_blank.eps", locs=locs)
@@ -1082,7 +1112,10 @@ if __name__ == '__main__':
 
 
 	#---------------- Basic Runner model -------------------------------
-	#runner_model = BasicRunner(seg_map=poly_map, locs=locs, isovist=isovist)
+	runner_model = BasicRunner(seg_map=poly_map, locs=locs, isovist=isovist)
+
+	# simple forward runs of the basic runner model
+	run_basic_forward(runner_model, poly_map, locs)
 
 	# --------- run goal inference on new observations ----------------
 	# inferrred_goals, sim_id= goal_inference_while_moving(runner_model, poly_map, locs)
@@ -1120,14 +1153,14 @@ if __name__ == '__main__':
 	#simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=5, SP=32)
 
 	#-----------run TOM partially observable model ------
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	 	nested_model=runner_model, ps=1, sp=16)
-	#-- run single conditioned sample ---//
-	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
+	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	# tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
+	#  	nested_model=runner_model, ps=1, sp=16)
+	# #-- run single conditioned sample ---//
+	# #run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
 
-	simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
-		directory="tom_find_eachother", PS=1, SP=16)
+	# simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
+	# 	directory="tom_find_eachother", PS=1, SP=16)
 
 
 
