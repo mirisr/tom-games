@@ -1175,7 +1175,7 @@ if __name__ == '__main__':
 		isovist = i.Isovist( load_isovist_map() )
 
 	#plots the map and the locations if said so in the function
-	plot(poly_map, plot_name="large_map_blank.eps", locs=locs)
+	#plot(poly_map, plot_name="large_map_blank.eps", locs=locs)
 	
 
 
@@ -1217,8 +1217,8 @@ if __name__ == '__main__':
 	#run_inference_PO(locs, poly_map, isovist)
 
 	# -----------run basic partially observable model - SIMULATE FIND EACHOTHER ----
-	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	# simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=5, SP=32)
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=5, SP=32)
 
 	#-----------run TOM partially observable model ------
 	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
