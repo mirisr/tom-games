@@ -552,6 +552,8 @@ def run_inference_PO(locs, poly_map, isovist):
 
 	close_plot(fig, ax, plot_name="PO_forward_runs/unknown_inference/IS_run_and_avoid-"+str(PS)+"-"+str(SP)+"-"+str(int(time.time()))+".eps")
 
+# inferred_bob_goal = get_most_detected_goal_PO(Q, poly_map, locs, sim_id, 
+# 			bob_path, "B", directory=directory, PS=PS, SP=SP)
 def get_most_detected_goal_PO(Q, poly_map, locs, sim_id, other_true_path, character, directory="find_eachother", PS=1, SP=1):
 	
 	post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
@@ -600,7 +602,54 @@ def get_most_detected_goal_PO(Q, poly_map, locs, sim_id, other_true_path, charac
 
 	return inferred_goal[detected_count.index(max(detected_count))]
 
-#condition_PO_model(runner_model, alice_start, bob_start, t, alice_path)
+
+def get_others_goal_at_most_detected_PO(Q, poly_map, locs, sim_id, other_true_path, character, directory="find_eachother", PS=1, SP=1):
+	
+	post_sample_traces = run_inference(Q, post_samples=PS, samples=SP)
+
+	fig, ax = setup_plot(poly_map, locs)
+
+	detected_count = []
+	inferred_goal = []
+	for trace in post_sample_traces:
+		d_list = trace["t_detected"]
+		detected_count.append(len(d_list))
+		other_inferred_goal = trace["other_run_goal"]
+		inferred_goal.append(other_inferred_goal)
+		# draw agent's plan (past in orange and future in grey)
+		path = trace["my_plan"]
+		t = trace["t"]
+		for i in range(0, t):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'orange', linestyle=":", linewidth=1, label="Agent's Plan")
+		# mark the runner at time t on its plan
+		ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='orange')
+		path = trace["other_plan"]
+		for i in range(0, t):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'blue', linestyle="--", linewidth=1, label="Other's Plan")
+			if i in trace["t_detected"]:
+				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+		ax.scatter( path[t][0],  path[t][1] , s = 95, facecolors='none', edgecolors='blue')
+		for i in range(t, 39):
+			ax.plot( [path[i][0], path[i+1][0] ], [ path[i][1], path[i+1][1]], 
+				'grey', linestyle="--", linewidth=1, label="Other's Plan")
+			if i in trace["t_detected"]:
+				ax.scatter( path[i][0],  path[i][1] , s = 50, facecolors='none', edgecolors='red')
+
+	# show true path of other agent
+	for i in range(len(other_true_path)-1):
+			ax.plot( [other_true_path[i][0], other_true_path[i+1][0] ], [ other_true_path[i][1], other_true_path[i+1][1]], 
+				'red', linestyle="--", linewidth=1, alpha = 0.75)
+	ax.scatter( other_true_path[t][0],  other_true_path[t][1] , s = 95, facecolors='none', edgecolors='red')
+
+	close_plot(fig, ax, plot_name="PO_forward_runs/"+directory+"/"+sim_id+"/finding-"+character+"-t-"+str(t)+".eps")
+
+	return inferred_goal[detected_count.index(max(detected_count))]
+
+# Q = condition_PO_model(runner_model, alice_start, bob_start, 
+# 				t, alice_path, alices_detections, alices_detection_locs_of_bob)
+
 def condition_PO_model(runner_model, start, other_start, t, path, past_obs, detection_locs_of_other):
 	Q = ProgramTrace(runner_model)
 	Q.condition("run_start", start)
@@ -658,11 +707,11 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 	    os.makedirs(newpath)
 
 	#Alice will start at some location
-	alice_start = 1
+	alice_start = 8
 	alice_path = [locs[alice_start]]
 
 	#Bob will start st some other location
-	bob_start = 7
+	bob_start = 6
 	bob_path = [locs[bob_start]]
 
 	alices_detections = {}
@@ -683,7 +732,8 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 			Q = condition_PO_model(runner_model, alice_start, bob_start, 
 				t, alice_path, alices_detections, alices_detection_locs_of_bob)
 
-		inferred_bob_goal = get_most_detected_goal_PO(Q, poly_map, locs, sim_id, 
+		#get_most_detected_goal_PO
+		inferred_bob_goal = get_others_goal_at_most_detected_PO(Q, poly_map, locs, sim_id, 
 			bob_path, "B", directory=directory, PS=PS, SP=SP)
 
 		#Bob will conduct goal inference on observations of alice's location
@@ -694,7 +744,8 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 			Q = condition_PO_model(runner_model, bob_start, alice_start, 
 				t, bob_path, bobs_detections, bobs_detection_locs_of_alice)
 
-		inferred_alice_goal = get_most_detected_goal_PO(Q, poly_map, locs, sim_id, 
+		#get_most_detected_goal_PO
+		inferred_alice_goal = get_others_goal_at_most_detected_PO(Q, poly_map, locs, sim_id, 
 			alice_path, "A", directory=directory, PS=PS, SP=SP)
 
 		#Alice will move toward Bob's goal after planning
@@ -1066,18 +1117,17 @@ if __name__ == '__main__':
 
 	# -----------run basic partially observable model - SIMULATE FIND EACHOTHER ----
 	#runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	#simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=1, SP=1)
+	#simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=5, SP=32)
 
 	#-----------run TOM partially observable model ------
 	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
 	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	 	nested_model=runner_model, ps=3, sp=16)
-	# #-- run single conditioned sample ---//
+	 	nested_model=runner_model, ps=1, sp=16)
+	#-- run single conditioned sample ---//
 	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
 
 	simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
-		directory="tom_find_eachother", PS=3, SP=16)
-
+		directory="tom_find_eachother", PS=1, SP=16)
 
 
 
