@@ -1249,18 +1249,18 @@ if __name__ == '__main__':
 	#run_inference_PO(locs, poly_map, isovist)
 
 	# -----------run basic partially observable model - SIMULATE FIND EACHOTHER ----
-	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=3, SP=32)
+	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	# simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory="find_eachother", PS=3, SP=32)
 
 	#-----------run TOM partially observable model ------
-	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
-	# tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	#  	nested_model=runner_model, ps=1, sp=1)
-	# #-- run single conditioned sample ---//
-	# #run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
+	runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
+	tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
+	 	nested_model=runner_model, ps=1, sp=1)
+	#-- run single conditioned sample ---//
+	#run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
 
-	# simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
-	# 	directory="tom_find_eachother", PS=1, SP=1)
+	simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
+		directory="tom_find_eachother", PS=1, SP=1)
 
 
 

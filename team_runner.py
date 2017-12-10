@@ -215,8 +215,14 @@ class TOMRunnerPOM(object):
 		my_loc = my_noisy_plan[t]
 
 		#---------------- do inference --------------------------------------------
-		post_sample_traces, other_inferred_trace = self.collaborative_nested_inference(Q)
-		other_noisy_plan = other_inferred_trace["my_plan"]
+		post_sample_traces, other_inferred_goal = self.collaborative_nested_inference(Q)
+		other_noisy_plan = None
+
+		for trace in post_sample_traces:
+			if trace["run_goal"] == other_inferred_goal:
+				other_noisy_plan = trace["my_plan"]
+				break
+
 
 		#---------------- need to add RV of detection for each time step ----------
 		t_detected = []
@@ -316,7 +322,7 @@ class TOMRunnerPOM(object):
 			goal_prob = goal_cnt / float(total_num_inferences)
 			goal_probabilities.append(goal_prob)
 
-		return goal_probabilities.index(max(goal_probabilities))
+		return post_sample_traces, goal_probabilities.index(max(goal_probabilities))
 
 
 	def run_inference(self, trace, post_samples=16, samples=32):
