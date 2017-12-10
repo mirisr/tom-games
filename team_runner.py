@@ -263,6 +263,8 @@ class TOMRunnerPOM(object):
 		q.condition("other_run_start", Q.fetch("init_run_start"))
 		q.condition("t", Q.fetch("t")) 
 		q.condition("run_start", Q.get_obs("other_run_start"))
+		q.condition("same_goal", True)
+
 		for i in xrange(24):
 			q.condition("detected_t_"+str(i), Q.get_obs("detected_t_"+str(i)))
 
@@ -276,7 +278,7 @@ class TOMRunnerPOM(object):
 			q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(prev_t)))
 			q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(prev_t)))
 
-		trace =  self.get_trace_for_most_detected_path_PO(q)
+		trace =  self.get_trace_for_most_probable_goal_location(q)
 
 		return trace
 
@@ -294,6 +296,27 @@ class TOMRunnerPOM(object):
 			inferred_goal.append(my_inferred_goal)
 
 		return post_sample_traces, post_sample_traces[detected_count.index(max(detected_count))]
+
+	def get_trace_for_most_probable_goal_location(self, Q):
+
+		post_sample_traces = self.run_inference(Q, post_samples=self.PS, samples=self.SP)
+
+		goal_list = []
+		# show post sample traces on map
+		for trace in post_sample_traces:
+			inferred_goal = trace["run_goal"]
+			goal_list.append(inferred_goal)
+			
+		# list with probability for each goal
+		goal_probabilities = []
+		total_num_inferences = len(goal_list)
+		# turn into percents
+		for goal in xrange(10):
+			goal_cnt = goal_list.count(goal)
+			goal_prob = goal_cnt / float(total_num_inferences)
+			goal_probabilities.append(goal_prob)
+
+		return goal_probabilities.index(max(goal_probabilities))
 
 
 	def run_inference(self, trace, post_samples=16, samples=32):

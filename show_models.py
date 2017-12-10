@@ -280,12 +280,24 @@ def get_most_probable_goal_location(runner_model, poly_map, locs, sim_id, path, 
 	goal_probabilities = []
 	total_num_inferences = len(goal_list)
 	# turn into percents
-	for goal in xrange(6):
+	for goal in xrange(10):
 		goal_cnt = goal_list.count(goal)
 		goal_prob = goal_cnt / float(total_num_inferences)
 		goal_probabilities.append(goal_prob)
 
 	return goal_probabilities.index(max(goal_probabilities))
+
+
+def add_Obs(Q, start, t, path):
+	Q.set_obs("run_start", start)
+
+	Q.set_obs("t", t)
+	# condition on previous time steps
+	for prev_t in xrange(t):
+		Q.set_obs("run_x_"+str(prev_t), path[prev_t][0])
+		Q.set_obs("run_y_"+str(prev_t), path[prev_t][1])
+	return Q
+
 
 # This simulates two agents performing nested goal inference using "TOM"
 def two_agent_nested_goal_inference_while_moving(runner_model, poly_map, locs):
@@ -422,16 +434,6 @@ def follow_the_leader_goal_inference(runner_model, poly_map, locs):
 		bob_path.append(bob_plan[1])
 
 		plot_movements(alice_path, bob_path, sim_id, poly_map, locs, t, code="FL-t")
-
-def add_Obs(Q, start, t, path):
-	Q.set_obs("run_start", start)
-
-	Q.set_obs("t", t)
-	# condition on previous time steps
-	for prev_t in xrange(t):
-		Q.set_obs("run_x_"+str(prev_t), path[prev_t][0])
-		Q.set_obs("run_y_"+str(prev_t), path[prev_t][1])
-	return Q
 
 
 def two_agent_goal_inference_while_moving(runner_model, poly_map, locs):
@@ -790,8 +792,8 @@ def condition_PO_model(runner_model, start, other_start, t, path, past_obs, dete
 # Q.set_obs("other_y_"+str(7), other_plan[7][1])
 def condition_TOM_PO_model(runner_model, start, other_start, t, path, past_obs, detection_locs_of_other):
 	Q = ProgramTrace(runner_model)
-	Q.condition("init_run_start", 2)
-	Q.set_obs("other_run_start", 5)
+	Q.condition("init_run_start", start)
+	Q.set_obs("other_run_start", other_start)
 	Q.condition("t", t)
 	Q.condition("same_goal", True)
 	for i in xrange(t):
@@ -828,11 +830,11 @@ def simulate_find_eachother_PO(runner_model, locs, poly_map, isovist, directory=
 	    os.makedirs(newpath)
 
 	#Alice will start at some location
-	alice_start = 0
+	alice_start = 4
 	alice_path = [locs[alice_start]]
 
 	#Bob will start st some other location
-	bob_start = 9
+	bob_start = 8
 	bob_path = [locs[bob_start]]
 
 	alices_detections = {}
@@ -1253,12 +1255,12 @@ if __name__ == '__main__':
 	#-----------run TOM partially observable model ------
 	# runner_model = BasicRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist)
 	# tom_runner_model = TOMRunnerPOM(seg_map=poly_map, locs=locs, isovist=isovist, 
-	#  	nested_model=runner_model, ps=1, sp=16)
+	#  	nested_model=runner_model, ps=1, sp=1)
 	# #-- run single conditioned sample ---//
 	# #run_conditioned_tom_partial_model(tom_runner_model, locs, poly_map, isovist, PS=1, SP=16)
 
 	# simulate_find_eachother_PO(tom_runner_model, locs, poly_map, isovist, 
-	# 	directory="tom_find_eachother", PS=1, SP=16)
+	# 	directory="tom_find_eachother", PS=1, SP=1)
 
 
 
