@@ -217,9 +217,10 @@ class TOMRunnerPOM(object):
 		#---------------- do inference --------------------------------------------
 		post_sample_traces, other_inferred_goal = self.collaborative_nested_inference(Q)
 		other_noisy_plan = None
-
+		other_inferred_trace = None
 		for trace in post_sample_traces:
 			if trace["run_goal"] == other_inferred_goal:
+				other_inferred_trace = trace
 				other_noisy_plan = trace["my_plan"]
 				break
 
@@ -248,7 +249,7 @@ class TOMRunnerPOM(object):
 			Q.keep("intersections-t-"+str(i), intersections)
 
 		same_goal = 0
-		if goal_i == other_inferred_trace["run_goal"]:
+		if goal_i == other_inferred_goal:
 			same_goal = 1
 		same_goal_prob = 0.999*same_goal + 0.001*(1-same_goal)
 
@@ -263,6 +264,7 @@ class TOMRunnerPOM(object):
 		Q.keep("nested_post_samples", post_sample_traces)
 
 
+	# need to look at how I conditioned the previous model
 	def collaborative_nested_inference(self, Q):
 		t = Q.fetch("t")
 		q = ProgramTrace(self.nested_model)
@@ -271,19 +273,21 @@ class TOMRunnerPOM(object):
 		q.condition("run_start", Q.get_obs("other_run_start"))
 		q.condition("same_goal", True)
 
+		# Assumes that if Agent A detects Agent B, then Agent B detects Agent A
 		for i in xrange(24):
 			q.condition("detected_t_"+str(i), Q.get_obs("detected_t_"+str(i)))
 
 			#condition on observations from other agent of me
 			if (Q.get_obs("detected_t_"+str(i)) == True):
-				if (i < t):
+				if (i == (t-1)):
 					q.condition("run_x_"+ str(i), Q.get_obs("other_x_"+str(i)))
 					q.condition("run_y_"+ str(i), Q.get_obs("other_y_"+str(i)))
 
-		for prev_t in xrange(t):
-			q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(prev_t)))
-			q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(prev_t)))
+		prev_t =(t-1)
+		q.condition("other_run_x_"+str(prev_t), Q.fetch("init_run_x_"+str(prev_t)))
+		q.condition("other_run_y_"+str(prev_t), Q.fetch("init_run_y_"+str(prev_t)))
 
+		print q.cond_data_db
 		trace =  self.get_trace_for_most_probable_goal_location(q)
 
 		return trace
